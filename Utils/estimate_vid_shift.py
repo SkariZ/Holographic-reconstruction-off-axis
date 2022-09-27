@@ -37,6 +37,9 @@ def clip_image (arr):
         
     return img
 
+def reject_outliers_std(data, m=2):
+    return data[abs(data - np.mean(data)) < m * np.std(data)]
+
 def estimate_peak_video(video, H, W, indexes = np.arange(0, 200), lag_comp = 1, distance_search_period = 10, median = False, reject_outliers=True):
     """
         Estimates the period of which the camera shiftes. Using cross corelation.
@@ -60,41 +63,47 @@ def estimate_peak_video(video, H, W, indexes = np.arange(0, 200), lag_comp = 1, 
             frames.append(tmp_img)
     frames = np.array(frames, dtype = np.float32)
     
+    frames = np.array([frame/np.mean(frame) for frame in frames], dtype = np.float32)
+
     #https://scikit-image.org/docs/0.11.x/auto_examples/plot_register_translation.html
     #Cross correlation
     errors = []
     for i in range(lag_comp, len(frames)):
         _, error, _ = phase_cross_correlation(
-            frames[i-lag_comp] / np.mean(frames[i-lag_comp]), 
-            frames[i] / np.mean(frames[i]), 
+            frames[i-lag_comp], 
+            frames[i], 
             space='fourier',
             normalization='phase') #FFT
         errors.append(error)
-
-    erorrs = np.array(errors)     
+    errors = np.array(errors)     
     
     #Identify peaks
     # distance = Required minimal horizontal distance
-    peaks = signal.find_peaks(errors, height = np.median(erorrs), distance = distance_search_period)
+    peaks = signal.find_peaks(errors, height = np.median(errors), distance = distance_search_period)
     peak_diff = np.diff(peaks[0], n = 1)
 
     #Remove "weird" observations
     if reject_outliers:
-        peak_diff = reject_outliers(peak_diff, m = 1.5)
+        peak_diff = reject_outliers_std(peak_diff, m = 1.75)
 
     if median:
         period = int(np.median(peak_diff)) #The most common period.
     else:
         period = np.mean(peak_diff) #Mean over the periods.
+
+    start_frame = find_start_frame(errors, distance_search_range = np.arange(int(period/2), int(3/2 * period)))
     
-    return period
+    return period, start_frame+lag_comp
 
 def estimate_peak_array(frames, max_ind = 1, lag_comp = 1, distance_search_period = 10, median = False, reject_outliers=True):
     """
         Estimates the period of which the camera shiftes. Using cross corelation.
     """
 
-    frames = np.array(frames, dtype = np.float32)
+    if np.iscomplexobj(frames):
+        frames = np.array([frame/(np.mean(frame.real) + 1j*np.mean(frame.imag)) for frame in frames], dtype = np.complex64)
+    else:
+        frames = np.array([frame/np.mean(frame) for frame in frames], dtype = np.float32)
 
     if max_ind !=1 and max_ind > 0:
         frames = frames[:max_ind]
@@ -104,30 +113,43 @@ def estimate_peak_array(frames, max_ind = 1, lag_comp = 1, distance_search_perio
     errors = []
     for i in range(lag_comp, len(frames)):
         _, error, _ = phase_cross_correlation(
-            frames[i-lag_comp] / np.mean(frames[i-lag_comp]), 
-            frames[i] / np.mean(frames[i]), 
+            frames[i-lag_comp], 
+            frames[i], 
             space='fourier',
             normalization='phase') #FFT
         errors.append(error)
 
-    erorrs = np.array(errors)    
+    errors = np.array(errors)    
     
     #Identify peaks
     # distance = Required minimal horizontal distance
-    peaks = signal.find_peaks(errors, height = np.median(erorrs), distance = distance_search_period)
+    peaks = signal.find_peaks(errors, height = np.median(errors), distance = distance_search_period)
     peak_diff = np.diff(peaks[0], n = 1)
     
     #Remove "weird" observations
     if reject_outliers:
-        peak_diff = reject_outliers(peak_diff, m = 1.5)
+        peak_diff = reject_outliers_std(peak_diff, m = 1.75)
 
     if median:
         period = int(np.median(peak_diff)) #The most common period.
     else:
         period = np.mean(peak_diff) #Mean over the periods.
     
-    return period
+    start_frame = find_start_frame(errors, distance_search_range = np.arange(int(period/2), int(3/2 * period)))
 
+    return period, start_frame+lag_comp
+
+
+def find_start_frame(errors, distance_search_range = [5, 10, 15, 20]):
+    peaks_potential = []
+    for distance in distance_search_range:
+        peaks_potential.append(
+            signal.find_peaks(
+            errors, 
+            height = np.median(errors),
+            distance = distance
+            )[0][0]
+        )
 
 
 

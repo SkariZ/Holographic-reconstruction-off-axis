@@ -1,4 +1,5 @@
 Results/
+Utils/__pycache__
 *.npy
 *.png
 *.pyc
