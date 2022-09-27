@@ -1,5 +1,3 @@
-import multiprocessing
-import numpy as np
 import glob
 import os
 import shutil

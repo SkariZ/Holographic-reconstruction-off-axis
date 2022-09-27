@@ -17,7 +17,7 @@ from Utils import estimate_vid_shift
 from Utils import get_idx
 from Utils import Utils_z
 
-import cv2, time, gc, numpy as np, os
+import cv2, time, gc, numpy as np
 from scipy import ndimage
 
 import multiprocessing as mp    

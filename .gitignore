@@ -1,1 +1,4 @@
 Results/
+*.npy
+*.png
+*.pyc
