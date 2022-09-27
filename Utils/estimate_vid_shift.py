@@ -46,7 +46,7 @@ def estimate_peak_video(video, H, W, indexes = np.arange(0, 200), median = True)
     frames = []
     for index in indexes:
         video.set(1, index); # Where index is the frame you want
-        ret, frame = video.read() # Read the frame
+        _, frame = video.read() # Read the frame
         tmp_img = frame[:,:,0]
         height, width = tmp_img.shape[:2]
         
