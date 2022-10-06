@@ -36,7 +36,6 @@ if __name__ == "__main__":
     simple_plot.main()    
     print("Total elapsed time for plotting--- %s seconds ---" % (time.time() - start_time))
 
-
     print("TOTAL elapsed time for script --- %s minutes ---" % str((time.time() - START) / 60))
     
 #Loading the field.

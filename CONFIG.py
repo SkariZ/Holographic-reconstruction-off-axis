@@ -100,7 +100,7 @@ class video_settings:
 class index_settings:
 
     #Cap the maximum number of frames.
-    max_frames : int = 50
+    max_frames : int = 180
 
     #Which frame to start processing from
     start_frame : int = 0
@@ -136,7 +136,7 @@ class plot_settings:
 class z_propagation_settings(index_settings, video_settings):
 
     #Z_prop - The z-propagation distance. If this set, then we do not estimate the focus on first frame.
-    z_prop : int = 0
+    z_prop : float = -3
 
     #Find focus for first frame and use for all other frames later
     find_focus_first_frame : bool = False
@@ -165,7 +165,7 @@ class reconstruction_settings(video_settings, index_settings):
     lowpass_fit : bool = True
 
     #For lowpass filtering when doing background estimation and subraction. First one is the fourier selection filter, the other are set costumized.
-    radius_lowpass : list[int] = field(default_factory=lambda: [175, 5, 5, 5]) #175, 5, 5, 5
+    radius_lowpass : list[int] = field(default_factory=lambda: [200, 5, 5, 5]) #175, 5, 5, 5
     
     #Shift fourier peak slightly. Manually, if the fourier center is slightly off..
     correct_fourier_peak : list[int] = field(default_factory=lambda: [0, 0]) #Positive row is upward shift, positive "col" is leftward shift and vice versa
