@@ -8,6 +8,7 @@ Created on Thu Oct  7 18:17:50 2021
 import cv2, numpy as np
 from scipy import ndimage
 from skimage.registration import phase_cross_correlation
+
 from scipy import signal
 
 def cropping_image(image, h, w):
@@ -22,6 +23,7 @@ def cropping_image(image, h, w):
 
     return image
     
+
 def clip_image (arr):
     """
     Some videos have black "edges". This disrupts the phase retrieval, hence we need to clip the images.
@@ -151,6 +153,49 @@ def find_start_frame(errors, distance_search_range = [5, 10, 15, 20]):
             )[0][0]
         )
 
+    #Get most common starting peak.
+    vals, count = np.unique(peaks_potential, return_counts=True)
+    start_frame = vals[np.argmax(count)]
+    
+    return start_frame
+
+def multi_peak_search_array(data, distance_search_range = [10, 15, 20], median=True, reject_otliers = True, min_tol_start = 10):
+
+    P = []
+    S = []
+    for distance in distance_search_range:
+
+        period, start_frame = estimate_peak_array(
+            data, 
+            max_ind = 1, 
+            lag_comp = 1, 
+            distance_search_period = distance, 
+            median = False, 
+            reject_outliers=reject_otliers
+            )
+
+        P.append(period)
+        S.append(start_frame)
+
+    P = np.array(P)
+    S = np.array(S)
+
+    if reject_otliers:
+        P = reject_outliers_std(P, m = 1.75)
+        #S = reject_outliers_std(S, m = 1.75)
+
+    if median:
+        period = np.median(P)
+    else:
+        period = np.mean(P)
+
+    vals, count = np.unique(S[S>min_tol_start], return_counts=True)
+    start_frame = vals[np.argmax(count)]
+
+    if not isinstance(start_frame, int):
+        start_frame = int(period)
+
+    return period, start_frame
 
 
 """

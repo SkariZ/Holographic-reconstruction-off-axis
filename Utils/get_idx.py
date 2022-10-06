@@ -91,4 +91,4 @@ def get(idx, start_frame, vid_shift, frame_disp_vid, max_frames, method = 'old',
         if max_frames < len(input_mp):
             input_mp = input_mp[:max_frames]   
     
-    return input_mp
+    return np.array(input_mp, dtype = int)

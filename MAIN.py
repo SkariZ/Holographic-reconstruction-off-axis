@@ -40,20 +40,25 @@ if __name__ == "__main__":
     print("TOTAL elapsed time for script --- %s minutes ---" % str((time.time() - START) / 60))
     
 #Loading the field.
-#f = np.load(f"Results/{DATA.project_name}/field/field.npy") #If you want to load field.
+#f = np.load(f'Results/{CONFIG.main_settings.project_name}/field/field.npy')
 #f = np.array([simple_plot.correctfield(f[i]) for i in range(len(f))], dtype = np.complex64)
 
 
-if False:
-    from Utils import Utils_z
 
-    Z = np.linspace(-5, 5, 21)
-    fgz = [Utils_z.refocus_field_z(fg, zz) for zz in Z]
+if False:
+    from Utils import Utils_z as Z
+
+    minz = 0 
+    maxz = 15
+    steps = 61
+    zp = np.linspace(minz, maxz, steps)
+
+    fgz = Z.refocus_field(ff, steps=steps, interval = [minz, maxz], padding = 32)
 
     for i, g in enumerate(fgz):
         plt.figure(figsize = (12,12))
         plt.imshow(g.real, cmap = 'gray')
-        plt.title(Z[i])
+        plt.title(f"z = {zp[i]} $\mu$m")
         plt.show()
 
     x = [np.std(np.abs(g)) for g in fgz]
@@ -61,4 +66,4 @@ if False:
     plt.plot(x)
     plt.plot(np.argmax(x), np.max(x), 'ro')
     plt.vlines(np.argmax(x), ymax = np.max(x), ymin = np.min(x), ls = '--', color = 'r')
-    print("Focus", Z[np.argmax(x)])
+    print("Focus", zp[np.argmax(x)])

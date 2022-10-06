@@ -67,6 +67,9 @@ def refocus_field_z(field, z_prop, padding = 0):
 
     """
 
+    if not np.iscomplexobj(field):
+        field = field[..., 0] + 1j*field[..., 1]
+        
     if padding > 0:
         field = np.pad(field, ((padding, padding), (padding, padding)), mode = 'reflect')
 
@@ -104,7 +107,9 @@ def refocus_field(field, steps=51, interval = [-10, 10], padding = 0):
         A stack of propagated_fields
 
     """
-    
+    if not np.iscomplexobj(field):
+        field = field[..., 0] + 1j*field[..., 1]
+
     if padding > 0:
         field = np.pad(field, ((padding, padding), (padding, padding)), mode = 'reflect')
 
@@ -159,7 +164,7 @@ def find_focus_field(field, steps=51, interval = [-10, 10], m = 'abs', padding=0
 
     """
 
-    if np.sum(field.imag) == 0:
+    if not np.iscomplexobj(field):
         field = field[..., 0] + 1j*field[..., 1]
 
     #Interval to propagate within
@@ -235,8 +240,7 @@ def SoG(field):
     Output:
         Sparsity of the gradient, to be used to calculate in focus.
     """
-
-    #row, col = field.shape
+    row, col = field.shape
 
 
     grad_x = np.abs(field[1:, 1:] - field[1:, :-1])**2

@@ -16,8 +16,9 @@ from Utils import get_good_frames_idx
 from Utils import estimate_vid_shift
 from Utils import get_idx
 from Utils import Utils_z
+from Utils import image_utils as u
 
-import cv2, time, gc, numpy as np
+import cv2, time, gc, numpy as np, os
 from scipy import ndimage
 
 import multiprocessing as mp    
@@ -96,65 +97,9 @@ def imgtofield(img,
 
     #Focus the field
     if np.abs(z_prop) > 0:  
-        E_field_corr2 = Utils_z.refocus_field_z(E_field_corr2, z_prop)
+        E_field_corr2 = Utils_z.refocus_field_z(E_field_corr2, z_prop, padding = 64)
         
     return E_field_corr2
-
-def cropping_image(image, h, w, corner = 4):
-    """
-    Crops the image
-    """
-    
-    hi, wi = image.shape[:2]
-    if hi<=h or wi<=w:
-        raise Exception("Cropping size larger than actual image size.")
-    
-    if wi == hi:#If we have a square image we can resize without loss of quality
-        image = cv2.resize(image, (w, h), interpolation = cv2.INTER_AREA)
-    else: #Crop out the "corner"
-        if corner == 1:
-            image = image[:h, :w]#image[-h:, -w:] #image[:h, :w] # Important to keep check here which corner we look at.
-        elif corner == 2:
-            image = image[:h, -w:]
-        elif corner == 3:
-            image = image[-h:, :w]
-        elif corner == 4:
-            image = image[-h:, -w:]
-    return image
-    
-def first_frame(video, height, width, index=1):
-    """
-    Returns the first frame of the video. Used for precalculations.
-    """
-    video.set(1, index); # Where index is the frame you want
-    _, frame = video.read() # Read the frame
-    image = frame[:, :, 0]
-    
-    if CONFIG.video_settings.edges:
-        image = clip_image(image)
-        height, width = image.shape[:2]
-        
-    if CONFIG.video_settings.height<height and CONFIG.video_settings.height != 1 or CONFIG.video_settings.width>width and CONFIG.video_settings.width !=1:
-        image = cropping_image(image, CONFIG.video_settings.height, CONFIG.video_settings.width, CONFIG.video_settings.corner)
-    else:
-        image = frame[:,:,0]
-    return image
-
-
-def clip_image (arr):
-    """
-    Some videos have black "edges". This disrupts the phase retrieval, hence we need to clip the images.
-    """
-
-    slice_x, slice_y = ndimage.find_objects(arr>0)[0]
-    img = arr[slice_x, slice_y]  
-    
-    #Sometimes due to rounding we get one pixel padded.
-    diff_dim = img.shape[0] - img.shape[1]
-    if diff_dim == 1:img = img[1:,:] #Change row
-    if diff_dim == -1: img = img[:,1:] #Change col
-        
-    return img
 
 def video_to_field_n(index):
     """
@@ -167,11 +112,11 @@ def video_to_field_n(index):
         tmp_img = frame[:, :, 0]
         
         if CONFIG.video_settings.edges:
-            tmp_img = clip_image(tmp_img)
+            tmp_img = u.clip_image(tmp_img)
             height, width = tmp_img.shape[:2]
             
         if CONFIG.video_settings.height<height and CONFIG.video_settings.height != 1 or CONFIG.video_settings.width>width and CONFIG.video_settings.width !=1:
-            tmp_img = cropping_image(tmp_img, CONFIG.video_settings.height, CONFIG.video_settings.width, CONFIG.video_settings.corner)
+            tmp_img = u.cropping_image(tmp_img, CONFIG.video_settings.height, CONFIG.video_settings.width, CONFIG.video_settings.corner)
         
         # Retrieve optical field and phase background.
         E_field = imgtofield(tmp_img, 
@@ -199,11 +144,18 @@ n_frames = int(video.get(cv2.CAP_PROP_FRAME_COUNT)) # Number of frames
 height = int(video.get(cv2.CAP_PROP_FRAME_HEIGHT)) #height
 width = int(video.get(cv2.CAP_PROP_FRAME_WIDTH)) #width
 fps = int(video.get(cv2.CAP_PROP_FPS)) #fps
-first_img = first_frame(video, height, width, index=CONFIG.reconstruction_settings.first_frame_precalc)
-
+#first_img = first_frame(video, height, width, index=CONFIG.reconstruction_settings.first_frame_precalc)
+first_img = u.first_frame(video, height, width,CONFIG.video_settings.height, CONFIG.video_settings.width, index=CONFIG.reconstruction_settings.first_frame_precalc)
 
 #Precalculations (Speed ups computations a lot).
-X, Y, X_c, Y_c, position_matrix, G, polynomial, KX, KY, KX2_add_KY2, kx_add_ky, dist_peak, masks, phase_background = phase_utils.pre_calculations(first_img, filter_radius = [], cropping = CONFIG.reconstruction_settings.cropping, mask_radie = CR.radius_lowpass, case = 'circular', first_phase_background = CONFIG.reconstruction_settings.first_phase_background)
+X, Y, X_c, Y_c, position_matrix, G, polynomial, KX, KY, KX2_add_KY2, kx_add_ky, dist_peak, masks, phase_background, rad  = phase_utils.pre_calculations(
+    first_img, 
+    filter_radius = [], 
+    cropping = CONFIG.reconstruction_settings.cropping, 
+    mask_radie = CR.radius_lowpass, 
+    case = 'circular', 
+    first_phase_background = CONFIG.reconstruction_settings.first_phase_background)
+
 jinc_mask = phase_utils.jinc(position_matrix / dist_peak / 3)
 sinc_mask = np.sinc(position_matrix / dist_peak / 3)
 

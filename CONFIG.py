@@ -1,3 +1,5 @@
+#import multiprocessing
+#import numpy as np
 import glob
 import os
 import shutil
@@ -17,10 +19,10 @@ class main_settings:
     """
     
     #Filename shall be an .avi file with the full path.
-    filename_folder : str = 'F:/7juli/AuEmelie_6h_10fps_3msExp_mod07_Every1_2'
+    filename_folder : str = 'D:/CellLNPsOverNight/Cells24h_cont_Every2_1'
 
     #Name project where the results shall be stored.
-    project_name : str = 'AuEmelie_6h_10fps_3msExp_mod07_Every1_2'
+    project_name : str = 'Cells24h_cont_Every2_1'
 
     #The filename that ends with holography. The file we want
     filename_holo : str = [f for f in glob.glob(filename_folder + "/*.avi") if f.endswith('holo.avi')][0] if [f for f in glob.glob(filename_folder + "/*.avi") if 
@@ -82,10 +84,10 @@ class video_settings:
     width : int = 1700
     
     #Which corner to crop in image [[],[]], upper left 0, upper right 1, lower left 2, lower right 3.
-    corner : int = 2
+    corner : int = 1
 
     # If you now the period of which the camera shifts, add this here. If 0 it will be estimated. (Does only matter if you will do background subtraction later, and only for index method old and pre-, prepost)
-    vid_shift : int = 40
+    vid_shift : float = 20
 
     #Edges- Some videos have black edges, some do not. 0 = no black edges, 1 = black edges. (Do not change, keep at 1)
     edges : bool = True
@@ -98,13 +100,13 @@ class video_settings:
 class index_settings:
 
     #Cap the maximum number of frames.
-    max_frames : int = 20
+    max_frames : int = 50
 
     #Which frame to start processing from
     start_frame : int = 0
 
     #How many frames before and after the vid shift that are looked at. (Only affects index_method = old and prepost)
-    frame_disp_vid : int = 6 
+    frame_disp_vid : int = 4 
 
     #Which indexes to take out beforehand. 'old', 'all' or 'pre2',...'pre5', prepost, 'every' and 'own_idx' . 'all' is 0,1,2,3..... The others are a bit special.
     index_method : str = 'all'
@@ -137,7 +139,7 @@ class z_propagation_settings(index_settings, video_settings):
     z_prop : int = 0
 
     #Find focus for first frame and use for all other frames later
-    find_focus_first_frame : bool = True
+    find_focus_first_frame : bool = False
 
     #Which frames to subtract for when finding focus.
     find_focus_first_frame_idx_start : int = index_settings.start_frame
@@ -163,7 +165,7 @@ class reconstruction_settings(video_settings, index_settings):
     lowpass_fit : bool = True
 
     #For lowpass filtering when doing background estimation and subraction. First one is the fourier selection filter, the other are set costumized.
-    radius_lowpass : list[int] = field(default_factory=lambda: [175, 5, 5, 5]) 
+    radius_lowpass : list[int] = field(default_factory=lambda: [175, 5, 5, 5]) #175, 5, 5, 5
     
     #Shift fourier peak slightly. Manually, if the fourier center is slightly off..
     correct_fourier_peak : list[int] = field(default_factory=lambda: [0, 0]) #Positive row is upward shift, positive "col" is leftward shift and vice versa
@@ -174,17 +176,8 @@ class reconstruction_settings(video_settings, index_settings):
     #Do phase unwrapping
     unwrap : bool = False
 
-    #Special unwwrapping
-    special_unwrap : bool = False
-
-    #Not used
-    sliding_background_size : int = 5
-
-    #How much weight the current background has in regards to other backgrounds. Not used.
-    background_weight : int = 2
-
     #Fit a phase background with first frame.
-    first_phase_background : bool = True
+    first_phase_background : bool = False
 
     #Cropping to remove weird edges etc.
     cropping : int = 50

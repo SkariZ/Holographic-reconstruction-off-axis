@@ -297,7 +297,7 @@ def get_G_matrix (input_shape):
     return G
 
 
-def pre_calculations(first_frame, filter_radius, cropping, mask_radie = [], case = 'ellipse', correct_fourier_peak = [0, 0], first_phase_background = False):
+def pre_calculations(first_frame, filter_radius, cropping, mask_radie = [], case = 'circular', correct_fourier_peak = [0, 0], first_phase_background = False):
     """
     When retriving the phase from a set of frames, many calculations only has to be done once. Hence precalculations can be useful to speed up computations.
 
@@ -319,6 +319,7 @@ def pre_calculations(first_frame, filter_radius, cropping, mask_radie = [], case
         kx_add_ky : off-center peak position with wavevector meshes. Used for shifting 1th order component to center.
         dist_peak : coordinate**2 of off-center peak
         mask_list : list of masks for lowpass filtering.
+        rad: size of the first mask
     """
     
     yr, xr  = first_frame.shape
@@ -336,7 +337,22 @@ def pre_calculations(first_frame, filter_radius, cropping, mask_radie = [], case
     Y_c, X_c = np.meshgrid(xc, yc)
     
     #4th order polynomial.
-    polynomial = [X_c**2, X_c*Y_c, Y_c**2, X_c, Y_c, X_c**3, X_c**2*Y_c, X_c*Y_c**2,Y_c**3, X_c**4, X_c**3*Y_c, X_c**2*Y_c**2, X_c*Y_c**3, Y_c**4]
+    polynomial = [
+        X_c**2, 
+        X_c*Y_c, 
+        Y_c**2, 
+        X_c, 
+        Y_c, 
+        X_c**3, 
+        X_c**2*Y_c, 
+        X_c*Y_c**2, 
+        Y_c**3, 
+        X_c**4, 
+        X_c**3*Y_c, 
+        X_c**2*Y_c**2, 
+        X_c*Y_c**3, 
+        Y_c**4
+        ]
     
     #Vectors of equal size. x1 and y1 spatial coordinates
     x1 = 1/2 * ((X_c[1:, 1:] + X_c[:-1, :-1])).flatten(order='F')
@@ -380,15 +396,13 @@ def pre_calculations(first_frame, filter_radius, cropping, mask_radie = [], case
     ky = np.linspace(-np.pi, np.pi, yr)
     KX, KY = np.meshgrid(kx, ky)
     
-    
     ##### The peak coordinates in the fourier space are the same for all frames (should be very similar atleast.)
     fftImage = np.fft.fft2(first_frame) #Compute the 2-dimensional discrete Fourier Transform
     fftImage = np.fft.fftshift(fftImage) #Shift the zero-frequency component to the center of the spectrum.
     
-    yr, xr = fftImage.shape
-    #If filter radius is not an int. Estimate it. 
-    if not isinstance(filter_radius, int):
-        filter_radius = int(np.min([xr, yr]) / 6)
+    yr, xr = fftImage.shape 
+    if not isinstance(filter_radius, (int, np.uint8)):
+        filter_radius = int(np.min([xr, yr]) / 7)
 
     fftImage = np.where(position_matrix < filter_radius, 0, fftImage) #Set values within filter_radius to 0
     fftImage = np.where(X < -5, 0, fftImage) #Set "left" values to 0 
@@ -401,16 +415,8 @@ def pre_calculations(first_frame, filter_radius, cropping, mask_radie = [], case
     idx_max_imag = np.unravel_index(np.argmax(imag_c, axis=None), fftImage.shape)
     
     idx_max = (int((idx_max_real[0] + idx_max_imag[0])/2), int((idx_max_real[1] + idx_max_imag[1])/2))   
-    
     idx_max = (idx_max[0]+correct_fourier_peak[0], idx_max[1]+correct_fourier_peak[1])
-    #gauss_fft = scipy.ndimage.gaussian_filter(np.log(np.abs(fftImage)), sigma = 5)
-    #idx_max = np.unravel_index(np.argmax(gauss_fft, axis=None), fftImage.shape)
-
-    #Slight shift to correct for weird shape
-    #idx_max = (idx_max[0]-5, idx_max[1]-10)
-
-    #idx_max = (idx_max[0]+18, idx_max[1]+5)
-    idx_max = (idx_max[0], idx_max[1]+5)
+    idx_max = (idx_max[0], idx_max[1])
 
     x_pos = X[idx_max] #In X
     y_pos = Y[idx_max] #In Y
@@ -431,9 +437,10 @@ def pre_calculations(first_frame, filter_radius, cropping, mask_radie = [], case
             else:
                 if case == 'ellipse': mask_list.append(create_ellipse_mask(yrc, xrc, percent = rad / yr))
                 elif case == 'circular': mask_list.append(create_circular_mask(yrc, xrc, radius = rad))
+        rad = mask_radie[0]
     #We estimate the size of the fourier filter. For first filtering step only.
     else:
-        rad = np.max([xr,yr]) / 8
+        rad = int(round(np.max([xr, yr]) / 8))
         if case == 'ellipse': mask_list.append(create_ellipse_mask(yr, xr, percent = rad / yr))
         elif case == 'circular': mask_list.append(create_circular_mask(yr, xr, radius = rad))
 
@@ -454,11 +461,12 @@ def pre_calculations(first_frame, filter_radius, cropping, mask_radie = [], case
     else:
         phase_background = []
 
-    return X, Y, X_c, Y_c, position_matrix, G, polynomial, KX, KY, KX2_add_KY2, kx_add_ky, dist_peak, mask_list, phase_background
+    return X, Y, X_c, Y_c, position_matrix, G, polynomial, KX, KY, KX2_add_KY2, kx_add_ky, dist_peak, mask_list, phase_background, rad
 
 def get_shifted_fft(frame, filter_radius=200, correct_fourier_peak = [0, 0]):
     """
     Return fourier image that is shifted by some pixels.
+    
     """
 
     yr, xr  = frame.shape
