@@ -1,2 +1,2 @@
 # Holographic-reconstruction-off-axis-
-Holohraphic reconstruction in off-axis holography.
+Hologhraphic reconstruction in off-axis holography.
