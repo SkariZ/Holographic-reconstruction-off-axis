@@ -5,7 +5,7 @@ Created on Tue Jun  8 15:16:41 2021
 @author: Fredrik Skärberg
 """
 
-import CONFIG as CONFIG
+import CONFIG
 import time, numpy as np, time
 import matplotlib.pyplot as plt
 
@@ -41,28 +41,3 @@ if __name__ == "__main__":
 #Loading the field.
 #f = np.load(f'Results/{CONFIG.main_settings.project_name}/field/field.npy')
 #f = np.array([simple_plot.correctfield(f[i]) for i in range(len(f))], dtype = np.complex64)
-
-
-
-if False:
-    from Utils import Utils_z as Z
-
-    minz = 0 
-    maxz = 15
-    steps = 61
-    zp = np.linspace(minz, maxz, steps)
-
-    fgz = Z.refocus_field(ff, steps=steps, interval = [minz, maxz], padding = 32)
-
-    for i, g in enumerate(fgz):
-        plt.figure(figsize = (12,12))
-        plt.imshow(g.real, cmap = 'gray')
-        plt.title(f"z = {zp[i]} $\mu$m")
-        plt.show()
-
-    x = [np.std(np.abs(g)) for g in fgz]
-
-    plt.plot(x)
-    plt.plot(np.argmax(x), np.max(x), 'ro')
-    plt.vlines(np.argmax(x), ymax = np.max(x), ymin = np.min(x), ls = '--', color = 'r')
-    print("Focus", zp[np.argmax(x)])

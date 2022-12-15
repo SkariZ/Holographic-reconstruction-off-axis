@@ -409,8 +409,8 @@ def pre_calculations(first_frame, filter_radius, cropping, mask_radie = [], case
     fftImage = np.where(np.abs(Y) < 5, 0, fftImage) #Set "fourier boundary" to 0. 
 
     #Find max with some minor gaussian convolutions
-    imag_c = scipy.ndimage.gaussian_filter(fftImage.imag, sigma = 2.5)
-    real_c = scipy.ndimage.gaussian_filter(fftImage.real, sigma = 2.5)
+    imag_c = scipy.ndimage.gaussian_filter(fftImage.imag, sigma = 3)
+    real_c = scipy.ndimage.gaussian_filter(fftImage.real, sigma = 3)
     idx_max_real = np.unravel_index(np.argmax(real_c, axis=None), fftImage.shape)
     idx_max_imag = np.unravel_index(np.argmax(imag_c, axis=None), fftImage.shape)
     
@@ -494,8 +494,8 @@ def get_shifted_fft(frame, filter_radius=200, correct_fourier_peak = [0, 0]):
     fftImage = np.where(np.abs(Y) < 5, 0, fftImage) #Set "fourier boundary" to 0. 
     
     #Find max with some minor gaussian convolutions
-    imag_c = scipy.ndimage.gaussian_filter(fftImage.imag, sigma = 2.5)
-    real_c = scipy.ndimage.gaussian_filter(fftImage.real, sigma = 2.5)
+    imag_c = scipy.ndimage.gaussian_filter(fftImage.imag, sigma = 3)
+    real_c = scipy.ndimage.gaussian_filter(fftImage.real, sigma = 3)
     idx_max_real = np.unravel_index(np.argmax(real_c, axis=None), fftImage.shape)
     idx_max_imag = np.unravel_index(np.argmax(imag_c, axis=None), fftImage.shape)
     

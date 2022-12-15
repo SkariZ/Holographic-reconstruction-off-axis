@@ -1,5 +1,19 @@
 import cv2
 import scipy.ndimage as ndimage
+import numpy as np
+import glob
+import re
+
+def atoi(text):
+    return int(text) if text.isdigit() else text
+
+def natural_keys(text):
+    '''
+    alist.sort(key=natural_keys) sorts in human order
+    http://nedbatchelder.com/blog/200712/human_sorting.html
+    (See Toothy's implementation in the comments)
+    '''
+    return [atoi(c) for c in re.split(r'(\d+)', text) ]
 
 def cropping_image(image, h, w, corner = 4):
     """
@@ -56,3 +70,65 @@ def clip_image (arr):
     if diff_dim == -1: img = img[:,1:] #Change col
         
     return img
+
+def correctfield(field, n_iter = 5):
+    """
+    Correct field
+    """
+    f_new = field.copy()
+
+    #Normalize with mean of absolute value.
+    f_new = f_new / np.mean(np.abs(f_new))
+
+    for _ in range(n_iter):
+        f_new = f_new * np.exp(-1j * np.median(np.angle(f_new)))
+
+    return f_new
+
+def save_video(folder, savefolder, fps = 12, quality = 10):
+    """
+    Saves a video to a folder. Uses maximal settings for imageio writer. fps is defined in config.
+    
+    savefolder = Where and name of the video.
+    folder = Directory containing n_frames .png files.
+    """
+
+    #Check if package exists
+    try:
+        import imageio
+    except ImportError:
+        print("Package imageio not installed. Please install with 'pip install imageio'.")
+        return
+
+    writer = imageio.get_writer(savefolder, mode = 'I', codec='mjpeg', fps=fps, quality=quality, pixelformat='yuvj444p', macro_block_size = 1)
+
+    imgs = glob.glob(folder + "*.png")
+    imgs.sort(key=natural_keys)
+    for file in imgs:
+        im = imageio.imread(file)
+        writer.append_data(im)
+    writer.close()
+    
+def gif(folder, savefolder):
+    """
+    Save frames to a gif. 
+    
+    folder = Directory containing .png files.
+    """
+    try:
+        from PIL import Image
+    except ImportError:
+        print("Package PIL not installed. Please install with 'pip install Pillow'.")
+        return
+
+    # Create the frames
+    frames = []
+    imgs = glob.glob(folder + "*.png")
+    imgs.sort(key=natural_keys)
+    for file_name in imgs:
+        new_frame = Image.open(file_name)
+        new_frame = new_frame.convert("P", palette=Image.ADAPTIVE)
+
+        frames.append(new_frame)
+    # Save into a GIF file that loops forever
+    frames[0].save(savefolder, format='GIF', append_images=frames[1:] , save_all=True, duration=100, loop=0)

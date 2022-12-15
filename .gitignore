@@ -1,6 +1,17 @@
-Results/
-Utils/__pycache__
+#Ignore all files in the following directories
+
+#Directories
+Results/*
+Utils/__pycache__/*
+__pycache__/*
+
+#Ignore directory all together
 __pycache__/
+Utils/__pycache__/
+
+
+#Files
+*.pyc
 *.npy
 *.png
 *.txt

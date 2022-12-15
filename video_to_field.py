@@ -68,7 +68,7 @@ def imgtofield(img,
     #If we use the same first phase background correction on all the data.
     if len(first_phase_background)>0:
         E_field_cropped = E_field_cropped * np.exp( -1j * first_phase_background)
-
+    
     #Lowpass filtered phase
     if if_lowpass_b:
         phase_img = phase_utils.phase_frequencefilter(fftImage2, mask = masks[1] , is_field = False, crop = cropping) 
@@ -85,7 +85,7 @@ def imgtofield(img,
             phase_img = phase_utils.phase_frequencefilter(E_field_corr, mask = masks[2], is_field = True) 
             phase_background = phase_utils.correct_phase_4order(phase_img, G, polynomial)
             E_field_corr =  E_field_corr * np.exp( -1j * phase_background)
-
+    
     #Lowpass filtered phase
     if if_lowpass_b:
         phase_img2 = phase_utils.phase_frequencefilter(E_field_corr, mask = masks[3], is_field = True)  
@@ -215,8 +215,8 @@ def main():
         pool = mp.Pool(processes=mp.cpu_count() - 2)#, maxtasksperchild=1000)
         start_time = time.time()
         time.sleep(5)
+        #Progress bar for multiprocessing
         field = pool.map(video_to_field_n, list(input_mp))
-        print("Field extracted...")
         print("--- Time per frame %s seconds ---" % ((time.time() - start_time) / len(input_mp)))
         time.sleep(5)
         
@@ -234,7 +234,9 @@ def main():
     #Field is a complex numpy array
     field = np.array(field, dtype = np.complex64)
 
-    f'Results/{CONFIG.main_settings.project_name}/field/field.npy' 
+    if CONFIG.reconstruction_settings.normalize_field:
+        field = u.correctfield(field, n_iter = 5)
+
     #Save field and indexes to file
     np.save(f'Results/{CONFIG.main_settings.project_name}/field/field.npy', field)
     np.save(f'Results/{CONFIG.main_settings.project_name}/field/idx.npy', input_mp)

@@ -1,5 +1,3 @@
-#import multiprocessing
-#import numpy as np
 import glob
 import os
 import shutil
@@ -19,10 +17,10 @@ class main_settings:
     """
     
     #Filename shall be an .avi file with the full path.
-    filename_folder : str = 'D:/CellLNPsOverNight/Cells24h_cont_Every2_1'
+    filename_folder : str = 'F:/PSLinOil/SecSampPSL450nmOnGlassInImmersionOil_thickLFAF_severalSteps_Every1_3'
 
     #Name project where the results shall be stored.
-    project_name : str = 'Cells24h_cont_Every2_1'
+    project_name : str = 'SecSampPSL450nmOnGlassInImmersionOil_thickLFAF_severalSteps_Every1_3c'
 
     #The filename that ends with holography. The file we want
     filename_holo : str = [f for f in glob.glob(filename_folder + "/*.avi") if f.endswith('holo.avi')][0] if [f for f in glob.glob(filename_folder + "/*.avi") if 
@@ -31,7 +29,7 @@ class main_settings:
     #Paths that will be constructed in Results/project_name/
     standard_paths : list  = field(default_factory = lambda:['field', 'plots'])
 
-    standard_paths_plot : list = field(default_factory = lambda:['prop', 'sub'])
+    standard_paths_plot : list = field(default_factory = lambda:['frames','prop', 'sub'])
 
     #Have them as usual functions as of now. Class will always be initialized the init values.
     def check_if_file_exists(self):
@@ -87,7 +85,7 @@ class video_settings:
     corner : int = 1
 
     # If you now the period of which the camera shifts, add this here. If 0 it will be estimated. (Does only matter if you will do background subtraction later, and only for index method old and pre-, prepost)
-    vid_shift : float = 20
+    vid_shift : float = 40
 
     #Edges- Some videos have black edges, some do not. 0 = no black edges, 1 = black edges. (Do not change, keep at 1)
     edges : bool = True
@@ -100,10 +98,10 @@ class video_settings:
 class index_settings:
 
     #Cap the maximum number of frames.
-    max_frames : int = 180
+    max_frames : int = 30
 
     #Which frame to start processing from
-    start_frame : int = 0
+    start_frame : int = 200
 
     #How many frames before and after the vid shift that are looked at. (Only affects index_method = old and prepost)
     frame_disp_vid : int = 4 
@@ -124,19 +122,25 @@ class plot_settings:
     plot_z : bool = True
 
     #Plot subtraction plots
-    plot_sub : bool = True
+    plot_sub : bool = False
 
     #DPI
     DPI : int = 200
 
     #Downsample
-    downsamplesize : int = 3
+    downsamplesize : int = 4
+
+    #Do movies of the plots above (.avi movie)
+    movie : bool = True
+
+    #Movie fps
+    movie_fps : int = 20
 
 @dataclass
 class z_propagation_settings(index_settings, video_settings):
 
     #Z_prop - The z-propagation distance. If this set, then we do not estimate the focus on first frame.
-    z_prop : float = -3
+    z_prop : int = 0
 
     #Find focus for first frame and use for all other frames later
     find_focus_first_frame : bool = False
@@ -165,19 +169,22 @@ class reconstruction_settings(video_settings, index_settings):
     lowpass_fit : bool = True
 
     #For lowpass filtering when doing background estimation and subraction. First one is the fourier selection filter, the other are set costumized.
-    radius_lowpass : list[int] = field(default_factory=lambda: [200, 5, 5, 5]) #175, 5, 5, 5
+    radius_lowpass : list[int] = field(default_factory=lambda: [225, 10, 10, 10]) #175, 5, 5, 5
     
     #Shift fourier peak slightly. Manually, if the fourier center is slightly off..
     correct_fourier_peak : list[int] = field(default_factory=lambda: [0, 0]) #Positive row is upward shift, positive "col" is leftward shift and vice versa
 
     #Additionional phase corrections. A loop.
-    add_phase_corrections : int = 3
+    add_phase_corrections : int = 5
 
     #Do phase unwrapping
     unwrap : bool = False
 
     #Fit a phase background with first frame.
-    first_phase_background : bool = False
+    first_phase_background : bool = True
 
     #Cropping to remove weird edges etc.
     cropping : int = 50
+
+    #Normalize field
+    normalize_field : bool = True

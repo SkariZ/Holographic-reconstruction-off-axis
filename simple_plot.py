@@ -7,12 +7,13 @@ Created on Thu Oct 14 22:23:54 2021
 
 import CONFIG
 
-from Utils import phase_utils
-from Utils import Utils_z
 import matplotlib.pyplot as plt
 import numpy as np, os, scipy, cv2
 from scipy import ndimage
 
+from Utils import phase_utils
+from Utils import Utils_z
+from Utils import image_utils
 
 def downsample2d(inputArray, kernelSize):
     average_kernel = np.ones((kernelSize, kernelSize))
@@ -139,16 +140,19 @@ def main():
     plt.axvline(x = CONFIG.video_settings.width/2, linewidth=2, color = 'red') if CONFIG.video_settings.width!= 1 else plt.axvline(x = width/2, linewidth=2, color = 'red')
     plt.savefig(f'{c_str}/1fft_centered.png', bbox_inches = 'tight', dpi = CONFIG.plot_settings.DPI)
  
-    #Then we plot z propagation and subtraction.
+    ##### Plot all 
     if CONFIG.plot_settings.plot_all:
        field = np.load(f'Results/{CONFIG.main_settings.project_name}/field/field.npy')
-       field = [correctfield(fi) for fi in field]
 
+       if CONFIG.reconstruction_settings.normalize_field:
+            field = [correctfield(fi) for fi in field]
+
+        #Plot all frames
        for i in range(len(field)):
            a = np.concatenate((field[i].real, field[i].imag), axis = 1)
            a = downsample2d(a, downsample_size) # Dwonsample somwehat
            
-           save_frame(a, c_str, name = f"real_imag{i}")
+           save_frame(a, c_str, name = f"frames/real_imag{i}")
        
        #Refocus field and plot.
        if CONFIG.plot_settings.plot_z:    
@@ -183,7 +187,22 @@ def main():
                    a = np.concatenate((sub.real, sub.imag), axis = 1)
                    a = downsample2d(a, downsample_size) # Dwonsample somwehat
                    save_frame(a, c_str + '/sub', name = f"real_imag{i}")
-                             
+
+
+    #Do movies of some of the plots
+    if CONFIG.plot_settings.movie:
+        
+        #Plot all frames
+        image_utils.save_video(folder = c_str + '/frames/', savefolder = c_str + '/frames_movie.avi', fps = CONFIG.plot_settings.movie_fps)
+
+        #Plot subtracted data
+        if CONFIG.plot_settings.plot_sub:
+            image_utils.save_video(folder = c_str + '/sub/', savefolder = c_str + '/sub_movie.avi', fps = CONFIG.plot_settings.movie_fps)
+        
+        #Plot refocused data
+        if CONFIG.plot_settings.plot_z:
+            image_utils.save_video(folder = c_str + '/prop/', savefolder = c_str + '/prop_movie.avi', fps = CONFIG.plot_settings.movie_fps)
+ 
         
 #Main function
 if __name__ == "__main__":
