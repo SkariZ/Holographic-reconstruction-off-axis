@@ -17,10 +17,10 @@ class main_settings:
     """
     
     #Filename shall be an .avi file with the full path.
-    filename_folder : str = 'D:/December14/Cells/Insolinoma1Every1_1_2/'
+    filename_folder : str = 'D:/December14/PSL450nm_PBSEvery1_3/'
 
     #Name project where the results shall be stored.
-    project_name : str = 'Insolinoma1Every1_1_2d'
+    project_name : str = 'PSL450nm_PBSEvery1_3'
 
     #The filename that ends with holography. The file we want
     filename_holo : str = [f for f in glob.glob(filename_folder + "/*.avi") if f.endswith('holo.avi')][0] if [f for f in glob.glob(filename_folder + "/*.avi") if 
@@ -95,6 +95,9 @@ class video_settings:
 
 @dataclass
 class index_settings:
+    """
+    DataClass to store index settings
+    """
 
     #Cap the maximum number of frames.
     max_frames : int = 200
@@ -113,6 +116,9 @@ class index_settings:
 
 @dataclass
 class plot_settings:
+    """
+    DataClass to store plot settings
+    """
 
     #Plot all frames
     plot_all : bool = True
@@ -127,7 +133,10 @@ class plot_settings:
     DPI : int = 200
 
     #Downsample
-    downsamplesize : int = 2
+    downsamplesize : int = 3
+
+    #Annotate plots
+    annotate : bool = True
 
     #Do movies of the plots above (.avi movie)
     movie : bool = True
@@ -135,8 +144,14 @@ class plot_settings:
     #Movie fps
     movie_fps : int = 20
 
+    #Delete images after movie is made
+    delete_images : bool = True
+
 @dataclass
 class z_propagation_settings(index_settings, video_settings):
+    """
+    DataClass to store z-propagation settings
+    """
 
     #Z_prop - The z-propagation distance. If this set, then we do not estimate the focus on first frame.
     z_prop : int = 0
@@ -150,10 +165,10 @@ class z_propagation_settings(index_settings, video_settings):
 
     ###Z-search propagation distance.
     #low
-    z_search_low : int = -20
+    z_search_low : int = -30
 
     #high
-    z_search_high : int = 20
+    z_search_high : int = 30
 
     #Step size
     z_steps : int = 51
@@ -181,10 +196,10 @@ class reconstruction_settings(video_settings, index_settings):
     add_phase_corrections : int = 3
 
     #Do phase unwrapping
-    unwrap : bool = False
+    unwrap : bool = True
 
     #Fit a phase background with first frame.
-    first_phase_background : bool = False
+    first_phase_background : bool = True
 
     #Cropping to remove weird edges etc.
     cropping : int = 50

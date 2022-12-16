@@ -1,9 +1,11 @@
 import cv2
+import scipy
 import scipy.ndimage as ndimage
 import numpy as np
 import glob
 import re
 
+import matplotlib.pyplot as plt
 def atoi(text):
     return int(text) if text.isdigit() else text
 
@@ -14,6 +16,27 @@ def natural_keys(text):
     (See Toothy's implementation in the comments)
     '''
     return [atoi(c) for c in re.split(r'(\d+)', text) ]
+
+#Save frame in native resolution. Can change colormap if necessary.
+def save_frame(frame, folder, name, cmap = 'gray', annotate = 'False', annotatename='', dpi = 300):
+    plt.imsave(f"{folder}/{name}.png", frame, cmap = cmap)
+
+    if annotate:
+        fig, ax = plt.subplots()
+        ax.imshow(frame, cmap = cmap)
+        ax.annotate(
+            annotatename, 
+            xy=(0.015, 0.985),
+            xycoords='axes fraction', 
+            fontsize=14, 
+            horizontalalignment='left', 
+            verticalalignment='top',
+            color = 'white'
+            )
+        ax.axis('off')
+        fig.savefig(f"{folder}/{name}.png", bbox_inches="tight", pad_inches = 0, dpi = dpi)
+        plt.close(fig)
+
 
 def cropping_image(image, h, w, corner = 4):
     """
@@ -70,6 +93,13 @@ def clip_image (arr):
     if diff_dim == -1: img = img[:,1:] #Change col
         
     return img
+
+def downsample2d(inputArray, kernelSize):
+    average_kernel = np.ones((kernelSize, kernelSize))
+
+    blurred_array = scipy.signal.convolve2d(inputArray, average_kernel, mode='same')
+    downsampled_array = blurred_array[::kernelSize,::kernelSize]
+    return downsampled_array
 
 def correctfield(field, n_iter = 5):
     """

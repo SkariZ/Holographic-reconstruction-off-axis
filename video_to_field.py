@@ -184,7 +184,7 @@ if CONFIG.z_propagation_settings.find_focus_first_frame and np.abs(CONFIG.z_prop
         m = 'abs', 
         bbox = [300, 600, 300, 600], 
         use_max_real=True)
-    
+
 def main():
     print("Original video size: (frames, height, width, fps):", (n_frames, height, width, fps))
     print('Focus is set to: ', np.round(CONFIG.z_propagation_settings.z_prop, 3))
@@ -258,6 +258,11 @@ def main():
     #Save field and indexes to file
     np.save(f'Results/{CONFIG.main_settings.project_name}/field/field.npy', field)
     np.save(f'Results/{CONFIG.main_settings.project_name}/field/idx.npy', input_mp)
+
+    #Plot the fourier selection filter.
+    if CONFIG.plot_settings.plot_all:
+        a = u.downsample2d(masks[0], CONFIG.plot_settings.downsamplesize) # Dwonsample somwehat
+        u.save_frame(a, f'Results/{CONFIG.main_settings.project_name}/plots', name = 'fourier_selection_mask')
 
     gc.collect()
     del field
