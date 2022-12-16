@@ -94,6 +94,17 @@ def imgtofield(img,
     
     #Correct E_field again
     E_field_corr2 = E_field_corr * np.exp(- 1j * np.median(phase_img2 + np.pi - 1))
+    
+    #Do unwrapping of the phase
+    if True:
+        phase_img_unwarp = phase_utils.phaseunwrap(np.angle(E_field_corr2), KX2_add_KY2) #Returns the unwraped phase of the E_field
+        phase_background2 = phase_utils.correct_phase_4order_removal(phase_img_unwarp, X_c, Y_c, polynomial) #Phase bakground fit
+        
+        #Retrieve the phase image
+        phase_image_finished = phase_img_unwarp - phase_background2
+        
+        #Correct the field
+        E_field_corr2 = np.abs(E_field_corr2)*np.exp(1j * phase_image_finished)
 
     #Focus the field
     if np.abs(z_prop) > 0:  
@@ -153,7 +164,7 @@ X, Y, X_c, Y_c, position_matrix, G, polynomial, KX, KY, KX2_add_KY2, kx_add_ky, 
     filter_radius = [], 
     cropping = CONFIG.reconstruction_settings.cropping, 
     mask_radie = CR.radius_lowpass, 
-    case = 'circular', 
+    case = 'ellipse', 
     first_phase_background = CONFIG.reconstruction_settings.first_phase_background)
 
 jinc_mask = phase_utils.jinc(position_matrix / dist_peak / 3)
@@ -167,11 +178,11 @@ if CONFIG.z_propagation_settings.find_focus_first_frame and np.abs(CONFIG.z_prop
         field = video_to_field_n(
             CONFIG.z_propagation_settings.find_focus_first_frame_idx_start) - video_to_field_n(CONFIG.z_propagation_settings.find_focus_first_frame_idx_stop
             )
-    CONFIG.z_propagation_settings.z_prop, criterion = Utils_z.find_focus_field(field, steps=51, interval = [CONFIG.z_propagation_settings.z_search_low, CONFIG.z_propagation_settings.z_search_high], m = 'abs', bbox = [300, 600, 300, 600], use_max_real=True)
+    CONFIG.z_propagation_settings.z_prop, criterion = Utils_z.find_focus_field(field, steps=CONFIG.z_propagation_settings.z_steps, interval = [CONFIG.z_propagation_settings.z_search_low, CONFIG.z_propagation_settings.z_search_high], m = 'abs', bbox = [300, 600, 300, 600], use_max_real=True)
     
 def main():
     print("Original video size: (frames, height, width, fps):", (n_frames, height, width, fps))
-    print('Focus found: ', np.round(CONFIG.z_propagation_settings.z_prop, 3))
+    print('Focus is set to: ', np.round(CONFIG.z_propagation_settings.z_prop, 3))
 
 
     # Predefined video / camera settings
@@ -236,6 +247,9 @@ def main():
 
     if CONFIG.reconstruction_settings.normalize_field:
         field = u.correctfield(field, n_iter = 5)
+
+    ###TODO add compress field with fft save.
+
 
     #Save field and indexes to file
     np.save(f'Results/{CONFIG.main_settings.project_name}/field/field.npy', field)

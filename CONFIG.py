@@ -17,10 +17,10 @@ class main_settings:
     """
     
     #Filename shall be an .avi file with the full path.
-    filename_folder : str = 'F:/PSLinOil/SecSampPSL450nmOnGlassInImmersionOil_thickLFAF_severalSteps_Every1_3'
+    filename_folder : str = 'D:/December14/Cells/Insolinoma1Every1_1_2/'
 
     #Name project where the results shall be stored.
-    project_name : str = 'SecSampPSL450nmOnGlassInImmersionOil_thickLFAF_severalSteps_Every1_3c'
+    project_name : str = 'Insolinoma1Every1_1_2d'
 
     #The filename that ends with holography. The file we want
     filename_holo : str = [f for f in glob.glob(filename_folder + "/*.avi") if f.endswith('holo.avi')][0] if [f for f in glob.glob(filename_folder + "/*.avi") if 
@@ -98,10 +98,10 @@ class video_settings:
 class index_settings:
 
     #Cap the maximum number of frames.
-    max_frames : int = 30
+    max_frames : int = 10
 
     #Which frame to start processing from
-    start_frame : int = 200
+    start_frame : int = 0
 
     #How many frames before and after the vid shift that are looked at. (Only affects index_method = old and prepost)
     frame_disp_vid : int = 4 
@@ -128,7 +128,7 @@ class plot_settings:
     DPI : int = 200
 
     #Downsample
-    downsamplesize : int = 4
+    downsamplesize : int = 2
 
     #Do movies of the plots above (.avi movie)
     movie : bool = True
@@ -151,9 +151,12 @@ class z_propagation_settings(index_settings, video_settings):
 
     ###Z-search propagation distance.
     #low
-    z_search_low : int = -10
+    z_search_low : int = -20
     #high
-    z_search_high : int = 10
+    z_search_high : int = 20
+
+    #Step size
+    z_steps : int = 51
 
 
 @dataclass
@@ -166,22 +169,22 @@ class reconstruction_settings(video_settings, index_settings):
     first_frame_precalc = index_settings.start_frame
 
     #Do a lowpassfit of background. This is necessary in Twilight 
-    lowpass_fit : bool = True
+    lowpass_fit : bool = False
 
     #For lowpass filtering when doing background estimation and subraction. First one is the fourier selection filter, the other are set costumized.
-    radius_lowpass : list[int] = field(default_factory=lambda: [225, 10, 10, 10]) #175, 5, 5, 5
+    radius_lowpass : list[int] = field(default_factory=lambda: [100, 5, 5, 5]) #175, 5, 5, 5
     
     #Shift fourier peak slightly. Manually, if the fourier center is slightly off..
     correct_fourier_peak : list[int] = field(default_factory=lambda: [0, 0]) #Positive row is upward shift, positive "col" is leftward shift and vice versa
 
     #Additionional phase corrections. A loop.
-    add_phase_corrections : int = 5
+    add_phase_corrections : int = 3
 
     #Do phase unwrapping
-    unwrap : bool = False
+    unwrap : bool = True
 
     #Fit a phase background with first frame.
-    first_phase_background : bool = True
+    first_phase_background : bool = False
 
     #Cropping to remove weird edges etc.
     cropping : int = 50

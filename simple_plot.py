@@ -116,7 +116,7 @@ def clip_image (arr):
 def main():
     c_str = f'Results/{CONFIG.main_settings.project_name}/plots'
 
-
+    #Settings
     video = cv2.VideoCapture(CONFIG.main_settings.filename_holo) # videobject
     height = int(video.get(cv2.CAP_PROP_FRAME_HEIGHT)) #height
     width = int(video.get(cv2.CAP_PROP_FRAME_WIDTH)) #width 
@@ -138,14 +138,12 @@ def main():
     plt.imshow(np.log(np.abs(im)),cmap = 'gray')    
     plt.axhline(y = CONFIG.video_settings.height/2, linewidth=2, color = 'red') if CONFIG.video_settings.height!= 1 else plt.axhline(y = height/2, linewidth=2, color = 'red')
     plt.axvline(x = CONFIG.video_settings.width/2, linewidth=2, color = 'red') if CONFIG.video_settings.width!= 1 else plt.axvline(x = width/2, linewidth=2, color = 'red')
-    plt.savefig(f'{c_str}/1fft_centered.png', bbox_inches = 'tight', dpi = CONFIG.plot_settings.DPI)
- 
+    plt.savefig(f'{c_str}/1fft_centered.png', bbox_inches = 'tight', dpi = CONFIG.plot_settings.DPI, facecolor = 'white')
+    plt.close()
+
     ##### Plot all 
     if CONFIG.plot_settings.plot_all:
        field = np.load(f'Results/{CONFIG.main_settings.project_name}/field/field.npy')
-
-       if CONFIG.reconstruction_settings.normalize_field:
-            field = [correctfield(fi) for fi in field]
 
         #Plot all frames
        for i in range(len(field)):
@@ -157,13 +155,13 @@ def main():
        #Refocus field and plot.
        if CONFIG.plot_settings.plot_z:    
            l , u = CONFIG.z_propagation_settings.z_search_low, CONFIG.z_propagation_settings.z_search_high
-           z = np.linspace(l, u, 21)
+           z = np.linspace(l, u, CONFIG.z_propagation_settings.z_steps)
            
            if np.abs(CONFIG.z_propagation_settings.z_prop) > 0:
-               field0 = Utils_z.refocus_field_z(field0, -CONFIG.z_propagation_settings.z_prop)
+               field0 = Utils_z.refocus_field_z(field0, -CONFIG.z_propagation_settings.z_prop, padding = 128)
            
            for i, zi in enumerate(z):
-               fp = Utils_z.refocus_field_z(field0, zi)
+               fp = Utils_z.refocus_field_z(field0, zi, padding = 128)
                r = downsample2d(fp.real, downsample_size) # Dwonsample somwehat
                save_frame(r, c_str + '/prop', name = f"{i}_z_{np.round(zi, 3)}_real")  
     
