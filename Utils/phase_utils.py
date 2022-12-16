@@ -9,6 +9,7 @@ Created on Wed Mar 03 09:14:39 2022
 
 import numpy as np
 from skimage import morphology
+from skimage.restoration import unwrap_phase
 #import cv2
 import scipy
 from scipy import ndimage
@@ -62,7 +63,56 @@ def correct_phase_4order (phase_img, G, polynomial):
     
     return phase_background
 
-def phaseunwrap (phase_image, KX2_add_KY2):
+def phaseunwrap_skimage(field):
+    """
+    Unwrap the phase of the field using skimage.
+
+    Input:
+        field : Complex field
+    Output:
+        Corrected field
+    """
+
+    #Check if the field is complex
+    if np.iscomplexobj(field):
+        phase = np.angle(field)
+    else:
+        raise ValueError("The field is not complex")
+
+    #Unwrap the phase
+    phase_unwrapped = unwrap_phase(phase)
+
+    return np.abs(field)*np.exp(1j * phase_unwrapped)
+
+
+def phase_unwrap_pipeline(field, X_c, Y_c, polynomial, KX2_add_KY2, phi_thres = 0.7):
+    """
+    Pipeline for phase unwrapping.
+
+    Input:
+        field : Complex field
+        X_c : X coordinates
+        Y_c : Y coordinates
+        polynomial : Polynomial matrix of meshes
+        KX2_add_KY2 : KX2 + KY2
+        phi_thres : Threshold for phase unwrapping
+    Output:
+        Corrected field
+    """
+
+    #Returns the unwraped phase of the E_field
+    phase_img_unwarp = phaseunwrap(np.angle(field), KX2_add_KY2)
+
+    #Phase bakground fit
+    phase_background2 = correct_phase_4order_removal(phase_img_unwarp, X_c, Y_c, polynomial, phi_thres=phi_thres)
+        
+    #Retrieve the phase image
+    phase_image_finished = phase_img_unwarp - phase_background2
+
+    return np.abs(field)*np.exp(1j * phase_image_finished)
+    
+
+def phaseunwrap(phase_image, KX2_add_KY2):
     """ 
     Phaseunwrap unwarp the 2*pi phase modulation. Works best after the polynomial background substraction. 
 

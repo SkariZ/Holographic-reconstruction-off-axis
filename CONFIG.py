@@ -93,7 +93,6 @@ class video_settings:
     #Check for good and bad frames before choosing which indeces to take out. Some videos disrupted // gray frames for example. Recommendet to keep off.
     check_good : bool = False
 
-
 @dataclass
 class index_settings:
 
@@ -191,3 +190,6 @@ class reconstruction_settings(video_settings, index_settings):
 
     #Normalize field
     normalize_field : bool = True
+
+    #Additional mask, either "sinc" or "jinc" , or else then nothin.
+    mask_f : str = 'sinc'

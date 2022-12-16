@@ -18,8 +18,7 @@ from Utils import get_idx
 from Utils import Utils_z
 from Utils import image_utils as u
 
-import cv2, time, gc, numpy as np, os
-from scipy import ndimage
+import cv2, time, gc, numpy as np
 
 import multiprocessing as mp    
 
@@ -27,7 +26,8 @@ def imgtofield(img,
                G, 
                polynomial, 
                kx_add_ky,
-               if_lowpass_b = False, 
+               if_lowpass_b = False,
+               unwrap = False, 
                cropping=50,
                mask_f = [], # sinc, jinc etc.
                z_prop = 0,
@@ -96,15 +96,8 @@ def imgtofield(img,
     E_field_corr2 = E_field_corr * np.exp(- 1j * np.median(phase_img2 + np.pi - 1))
     
     #Do unwrapping of the phase
-    if True:
-        phase_img_unwarp = phase_utils.phaseunwrap(np.angle(E_field_corr2), KX2_add_KY2) #Returns the unwraped phase of the E_field
-        phase_background2 = phase_utils.correct_phase_4order_removal(phase_img_unwarp, X_c, Y_c, polynomial) #Phase bakground fit
-        
-        #Retrieve the phase image
-        phase_image_finished = phase_img_unwarp - phase_background2
-        
-        #Correct the field
-        E_field_corr2 = np.abs(E_field_corr2)*np.exp(1j * phase_image_finished)
+    if unwrap:
+        E_field_corr2 = phase_utils.phaseunwrap_skimage(E_field_corr2)
 
     #Focus the field
     if np.abs(z_prop) > 0:  
@@ -134,9 +127,10 @@ def video_to_field_n(index):
                              G, 
                              polynomial, 
                              kx_add_ky,
-                             if_lowpass_b = CONFIG.reconstruction_settings.lowpass_fit, 
-                             cropping=CONFIG.reconstruction_settings.cropping,  
-                             mask_f = [],
+                             if_lowpass_b = CONFIG.reconstruction_settings.lowpass_fit,
+                             unwrap = CONFIG.reconstruction_settings.unwrap, 
+                             cropping = CONFIG.reconstruction_settings.cropping,  
+                             mask_f = mask_f,
                              z_prop = CONFIG.z_propagation_settings.z_prop,
                              masks = masks,
                              add_phase_corrections= CONFIG.reconstruction_settings.add_phase_corrections,
@@ -156,7 +150,7 @@ height = int(video.get(cv2.CAP_PROP_FRAME_HEIGHT)) #height
 width = int(video.get(cv2.CAP_PROP_FRAME_WIDTH)) #width
 fps = int(video.get(cv2.CAP_PROP_FPS)) #fps
 #first_img = first_frame(video, height, width, index=CONFIG.reconstruction_settings.first_frame_precalc)
-first_img = u.first_frame(video, height, width,CONFIG.video_settings.height, CONFIG.video_settings.width, index=CONFIG.reconstruction_settings.first_frame_precalc)
+first_img = u.first_frame(video, height, width, CONFIG.video_settings.height, CONFIG.video_settings.width, index=CONFIG.reconstruction_settings.first_frame_precalc)
 
 #Precalculations (Speed ups computations a lot).
 X, Y, X_c, Y_c, position_matrix, G, polynomial, KX, KY, KX2_add_KY2, kx_add_ky, dist_peak, masks, phase_background, rad  = phase_utils.pre_calculations(
@@ -167,8 +161,13 @@ X, Y, X_c, Y_c, position_matrix, G, polynomial, KX, KY, KX2_add_KY2, kx_add_ky, 
     case = 'ellipse', 
     first_phase_background = CONFIG.reconstruction_settings.first_phase_background)
 
-jinc_mask = phase_utils.jinc(position_matrix / dist_peak / 3)
-sinc_mask = np.sinc(position_matrix / dist_peak / 3)
+#Jinc and sinc masks
+if CONFIG.reconstruction_settings.mask_f == 'jinc':
+    mask_f = phase_utils.jinc(position_matrix / dist_peak / 3)
+elif CONFIG.reconstruction_settings.mask_f == 'sinc':
+    mask_f = np.sinc(position_matrix / dist_peak / 3)
+else:
+    mask_f = []
 
 #Search for focus on first frame.
 if CONFIG.z_propagation_settings.find_focus_first_frame and np.abs(CONFIG.z_propagation_settings.z_prop) == 0:
@@ -178,12 +177,17 @@ if CONFIG.z_propagation_settings.find_focus_first_frame and np.abs(CONFIG.z_prop
         field = video_to_field_n(
             CONFIG.z_propagation_settings.find_focus_first_frame_idx_start) - video_to_field_n(CONFIG.z_propagation_settings.find_focus_first_frame_idx_stop
             )
-    CONFIG.z_propagation_settings.z_prop, criterion = Utils_z.find_focus_field(field, steps=CONFIG.z_propagation_settings.z_steps, interval = [CONFIG.z_propagation_settings.z_search_low, CONFIG.z_propagation_settings.z_search_high], m = 'abs', bbox = [300, 600, 300, 600], use_max_real=True)
+    CONFIG.z_propagation_settings.z_prop, criterion = Utils_z.find_focus_field(
+        field, 
+        steps=CONFIG.z_propagation_settings.z_steps, 
+        interval = [CONFIG.z_propagation_settings.z_search_low, CONFIG.z_propagation_settings.z_search_high], 
+        m = 'abs', 
+        bbox = [300, 600, 300, 600], 
+        use_max_real=True)
     
 def main():
     print("Original video size: (frames, height, width, fps):", (n_frames, height, width, fps))
     print('Focus is set to: ', np.round(CONFIG.z_propagation_settings.z_prop, 3))
-
 
     # Predefined video / camera settings
     video_shift_data = video_shift_info.get_video_shift_info()
