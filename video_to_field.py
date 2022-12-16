@@ -149,7 +149,6 @@ n_frames = int(video.get(cv2.CAP_PROP_FRAME_COUNT)) # Number of frames
 height = int(video.get(cv2.CAP_PROP_FRAME_HEIGHT)) #height
 width = int(video.get(cv2.CAP_PROP_FRAME_WIDTH)) #width
 fps = int(video.get(cv2.CAP_PROP_FPS)) #fps
-#first_img = first_frame(video, height, width, index=CONFIG.reconstruction_settings.first_frame_precalc)
 first_img = u.first_frame(video, height, width, CONFIG.video_settings.height, CONFIG.video_settings.width, index=CONFIG.reconstruction_settings.first_frame_precalc)
 
 #Precalculations (Speed ups computations a lot).
@@ -159,7 +158,8 @@ X, Y, X_c, Y_c, position_matrix, G, polynomial, KX, KY, KX2_add_KY2, kx_add_ky, 
     cropping = CONFIG.reconstruction_settings.cropping, 
     mask_radie = CR.radius_lowpass, 
     case = 'ellipse', 
-    first_phase_background = CONFIG.reconstruction_settings.first_phase_background)
+    first_phase_background = CONFIG.reconstruction_settings.first_phase_background,
+    mask_out = CONFIG.reconstruction_settings.mask_out)
 
 #Jinc and sinc masks
 if CONFIG.reconstruction_settings.mask_f == 'jinc':

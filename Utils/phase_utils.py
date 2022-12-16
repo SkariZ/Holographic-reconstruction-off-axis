@@ -110,7 +110,7 @@ def phase_unwrap_pipeline(field, X_c, Y_c, polynomial, KX2_add_KY2, phi_thres = 
     phase_image_finished = phase_img_unwarp - phase_background2
 
     return np.abs(field)*np.exp(1j * phase_image_finished)
-    
+
 
 def phaseunwrap(phase_image, KX2_add_KY2):
     """ 
@@ -347,7 +347,16 @@ def get_G_matrix (input_shape):
     return G
 
 
-def pre_calculations(first_frame, filter_radius, cropping, mask_radie = [], case = 'circular', correct_fourier_peak = [0, 0], first_phase_background = False):
+def pre_calculations(
+    first_frame, 
+    filter_radius, 
+    cropping, 
+    mask_radie = [], 
+    case = 'circular', 
+    correct_fourier_peak = [0, 0], 
+    first_phase_background = False,
+    mask_out = False
+    ):
     """
     When retriving the phase from a set of frames, many calculations only has to be done once. Hence precalculations can be useful to speed up computations.
 
@@ -358,6 +367,8 @@ def pre_calculations(first_frame, filter_radius, cropping, mask_radie = [], case
         mask_radie : creates masks with radius in list.
         case : ellipsoid or circular mask.
         correct_fourier_peak : correct fourier peak with this amount (pre analyzed that the peak is slightly shifted)
+        first_phase_background : If you want to use a phase background for the first frame.
+        mask_out : Create a mask that ignores certain peaks in fft image that may disturb the phase retrieval.
     Output:
         X, Y : meshes
         X_c, Y_c : meshes cropped 
@@ -490,22 +501,36 @@ def pre_calculations(first_frame, filter_radius, cropping, mask_radie = [], case
         rad = mask_radie[0]
     #We estimate the size of the fourier filter. For first filtering step only.
     else:
-        rad = int(round(np.max([xr, yr]) / 8))
+        rad = int(round(np.max([xr, yr]) / 6))
         if case == 'ellipse': mask_list.append(create_ellipse_mask(yr, xr, percent = rad / yr))
         elif case == 'circular': mask_list.append(create_circular_mask(yr, xr, radius = rad))
 
-    #Here we calculate the phase background for the first image.
-    if first_phase_background:
-        fftImage2 = np.fft.fftshift(
+    #FFT image shifted to center and masked out
+    fftImage2 = np.fft.fftshift(
             np.fft.fft2(
             (first_frame - np.mean(first_frame)) * np.exp(1j*(kx_add_ky)))
             ) * mask_list[0]
 
+    if mask_out:
+        new_mask = mask_out_pipeline(
+            fftImage2, 
+            mask_list[0], 
+            min_distance = 50, 
+            sigma = 3, 
+            max_peaks = 6, 
+            min_distance_from_center = 50, 
+            mask_out_size = 60, 
+            mask_out_case = case)
+
+        #Update mask list.
+        mask_list[0] = new_mask
+
+    #Here we calculate the phase background for the first image.
+    if first_phase_background:
         if len(mask_list)>1:
             phase_img = phase_frequencefilter(fftImage2, mask = mask_list[1] , is_field = False, crop = cropping)
         else:
             phase_img = np.angle(np.fft.ifft2(np.fft.fftshift(fftImage2))[cropping:-cropping, cropping:-cropping])
-
         # Get the phase background from phase image.
         phase_background = correct_phase_4order(phase_img, G, polynomial)
     else:
@@ -735,186 +760,6 @@ def correct_phase_manually(field, phase_img, margin_shift = 2.5, input_phase = T
     
     return phase
 
-
-def precalc_Tz (k, zv, K, C):
-    """
-    Computes the T_z matrix used for propagating an optical field.
-
-    Input:
-        k : Wavevector
-        zv : List of z propagation steps
-        K : Transformation matrix
-        C : Circular disk
-    Output:
-        z-propagator matrix
-
-    """
-
-    return [C*np.fft.fftshift(np.exp(k * 1j*z*(K-1))) for z in zv]
-
-def precalc(field):
-    """
-    Precalculate some constants for propagating field for faster computations.
-
-    Input:
-        field : Complex valued optical field.
-    Output:
-        K : Transformation matrix
-        C : Circular disk
-
-    """
-    
-    k = 2* np.pi / 0.633 # Wavevector
-    
-    yr, xr = field.real.shape
-
-    x = 2 * np.pi/(.114) * np.arange(-(xr/2-1/2), (xr/2 + 1/2), 1)/xr
-    y = 2 * np.pi/(.114) * np.arange(-(yr/2-1/2), (yr/2 + 1/2), 1)/yr
-
-    KXk, KYk = np.meshgrid(x, y)
-    K = np.real(np.sqrt(np.array(1 -(KXk/k)**2 - (KYk/k)**2 , dtype = np.complex64)))
-    
-    #Create a circular disk here.
-    C = np.fft.fftshift(((KXk/k)**2 + (KYk/k)**2 < 1)*1.0)
-
-    return x, y, K, C 
-
-def refocus_field_z(field, z_prop):
-    """
-    Function for refocusing field.
-
-    Input:
-        field : Complex valued optical field.
-        z_prop : float or integer of amount of z propagation.
-
-    Output: 
-         Refocused field
-
-    """
-
-    k = 2 * np.pi / 0.633 # Wavevector
-    _, _ , K, C = precalc(field)
-    
-    z = [z_prop]
-    
-    #Get matrix for propagation.
-    Tz = precalc_Tz(k, z, K, C)    
-    
-    #Fourier transform of field
-    f1 = np.fft.fft2(field)
-    
-    #Propagate f1 by z_prop
-    refocused = np.array(np.fft.ifft2(Tz*f1), dtype = np.complex64)
-    
-    return np.squeeze(refocused)
-
-
-def refocus_field(field, steps=51, interval = [-10, 10]):
-    """
-    Function for refocusing field.
-
-    Input:
-        field : Complex valued optical field.
-        Steps : N progation steps, equally ditributed in interval.
-        Interval : Refocusing interval
-
-    Output: 
-        A stack of propagated_fields
-
-    """
-    
-    k = 2 * np.pi / 0.633
-    _, _, K, C = precalc(field)
-    
-    zv = np.linspace(interval[0], interval[1], steps)
-    
-    #Get matrix for propagation.
-    Tz = precalc_Tz(k, zv, K, C)    
-    
-    #Fourier transform
-    f1 = np.fft.fft2(field)
-    
-    #Stack of different refocused images.
-    refocused =  np.array([np.fft.ifft2(Tz[i]*f1) for i in range(steps)], dtype = np.complex64)
-    
-    return refocused
-    
-def adjescent_pixels(image, n_rows):
-    """
-    Compute the sum of absolute value between pixels in image.
-
-    Input:
-        Image : Complex valued image of optical field. (must not be complex, works anyways...)
-        n_rows : How many rows to consider
-    """
-    abssum = 0
-    for i in range(n_rows-1):
-        abssum += np.sum(np.abs(image[i, :].real - image[i+1, :].real))
-        
-    return float(abssum / n_rows)  
-    
-def find_focus_field(field, steps=51, interval = [-10, 10], m = 'abs', use_max_real = False, bbox = []):
-    """
-    Find focus of optical field.
-
-    Input:
-        field : Complex valued optical field.
-        Steps : N progation steps, equally ditributed in interval.
-        Interval : Refocusing interval
-        m : Evaluation criterion, 'abs', 'sobel', or 'adjescent'
-        use_max_real : simply take the max value of the real part of the optical field and extract an roi around that point.
-        bbox : evaluate the focus in the region of the bounding box.
-
-    Output: 
-        z_prop : float optimal z propagation
-
-    """
-
-    zv = np.linspace(interval[0], interval[1], steps)
-    
-    #Predefined bbox
-    if len(bbox)==4 and use_max_real == False:
-        a = refocus_field(field[bbox[0]:bbox[1], bbox[2]:bbox[3]], 
-                          steps=steps, 
-                          interval = interval)
-        
-    elif use_max_real==True:
-        idx_max = np.unravel_index(np.argmax(field.real, axis=None), field.real.shape)
-        padsize = 256
-        
-        #Use an roi where max is found
-        if idx_max[0]-padsize > 0 and idx_max[0]+padsize<field.shape[0] and idx_max[1]-padsize > 0 and idx_max[1]+padsize<field.shape[1]:
-            field = field[idx_max[0]-padsize : idx_max[0]+padsize, idx_max[1]-padsize : idx_max[1]+padsize]
-        
-        #Use center...
-        else:
-            field = field[int(field.shape[0]/2 - padsize) : int(field.shape[0]/2 + padsize), int(field.shape[1]/2 - padsize) : int(field.shape[1]/2 + padsize)]     
-        
-        a = refocus_field(field, 
-                          steps=steps, 
-                          interval = interval)  
-        
-    else:
-        a = refocus_field(field, 
-                          steps=steps, 
-                          interval = interval)   
-    
-    #standard deviation of sobelfiltered image. Other criterions can be used aswell
-    if m == 'sobel':
-        criterion = [np.std(ndimage.sobel(im.real)) + np.std(ndimage.sobel(im.imag))  for im in a]
-    elif m == 'abs':
-        criterion = [np.std(np.abs(im))  for im in a]
-    elif m == 'adjescent':
-        criterion = [adjescent_pixels(im, n_rows = 1024)  for im in a]
-        
-    #idx of max 
-    idx = np.argmax(criterion)
-    
-    #How much propagation in z
-    z_focus = zv[idx]
-    
-    return z_focus
-
 def create_circular_mask(h, w, center=None, radius=None):
     """
     Creates a circular mask.
@@ -962,7 +807,9 @@ def create_ellipse_mask(h, w, center = None, radius_h = None, radius_w = None, p
 
     if center is None:
         center_w, center_h = int(w/2), int(h/2)
-    
+    else:
+        center_w, center_h = center[0], center[1]
+
     if radius_h is None and radius_w is None: 
     
         if percent is not None:
@@ -973,9 +820,71 @@ def create_ellipse_mask(h, w, center = None, radius_h = None, radius_w = None, p
     img = np.zeros((h, w))
     mask = cv2.ellipse(img, (center_w, center_h), (radius_w, radius_h), 0, 0, 360, 255, -1)
 
-    mask = np.where(mask > 0, 1, 0)
-    return mask
+    return np.where(mask > 0, 1, 0)
 
+def mask_out_pipeline(
+    fftimage, 
+    mask_original, 
+    min_distance = 50, 
+    sigma = 3, 
+    max_peaks = 6, 
+    min_distance_from_center = 50, 
+    mask_out_size = 35, 
+    mask_out_case = 'ellipse'):
+
+    """
+    Mask out peaks in fftimage.
+    """
+
+    #Import libraries-Used for detecting the peaks
+    from skimage.feature import peak_local_max
+
+    intensity = np.abs(fftimage)
+
+    #Normalize intensity within 0 - 1
+    intensity = intensity / np.max(intensity)
+
+    #Add a small delta
+    intensity = intensity + 1e-9
+
+    #Do gaussian blur
+    intensity = scipy.ndimage.gaussian_filter(intensity, sigma=sigma)
+
+    #Normalize intensity within 0 - 1
+    intensity = intensity / np.max(intensity)
+
+    #Find local maximas
+    local_maxi = peak_local_max(intensity, min_distance=min_distance)
+
+    #Find distance from center
+    distance_from_center = np.sqrt((local_maxi[:,0] - fftimage.shape[0]/2)**2 + (local_maxi[:,1] - fftimage.shape[1]/2)**2)
+
+    #Extract the local maximas that are far enough from center
+    local_maxi = local_maxi[distance_from_center > min_distance_from_center]
+
+    #Max peaks
+    peaks = local_maxi[:max_peaks]
+
+    #Mask out the peaks
+    mask = np.zeros_like(mask_original)
+
+    for peak in peaks:
+        
+        if mask_out_case == 'ellipse':
+            m = create_ellipse_mask(mask_original.shape[0], mask_original.shape[1], center = [peak[1], peak[0]], percent = mask_out_size / mask_original.shape[1])
+
+        elif mask_out_case == 'circle':
+            m = create_circular_mask(mask_original.shape[0], mask_original.shape[1], center = [peak[1], peak[0]], radius = mask_out_size)
+        
+        mask = mask + m
+
+    mask[mask>0] = -1
+
+    new_mask = np.array(mask_original + mask, dtype = np.int8)
+
+    new_mask = np.where(new_mask == -1, 0, new_mask)
+
+    return new_mask
 
 def black_frame(img):
     """

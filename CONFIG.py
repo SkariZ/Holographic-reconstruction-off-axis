@@ -97,7 +97,7 @@ class video_settings:
 class index_settings:
 
     #Cap the maximum number of frames.
-    max_frames : int = 10
+    max_frames : int = 200
 
     #Which frame to start processing from
     start_frame : int = 0
@@ -151,6 +151,7 @@ class z_propagation_settings(index_settings, video_settings):
     ###Z-search propagation distance.
     #low
     z_search_low : int = -20
+
     #high
     z_search_high : int = 20
 
@@ -171,16 +172,16 @@ class reconstruction_settings(video_settings, index_settings):
     lowpass_fit : bool = False
 
     #For lowpass filtering when doing background estimation and subraction. First one is the fourier selection filter, the other are set costumized.
-    radius_lowpass : list[int] = field(default_factory=lambda: [100, 5, 5, 5]) #175, 5, 5, 5
+    radius_lowpass : list[int] = field(default_factory=lambda: []) #175, 5, 5, 5
     
     #Shift fourier peak slightly. Manually, if the fourier center is slightly off..
     correct_fourier_peak : list[int] = field(default_factory=lambda: [0, 0]) #Positive row is upward shift, positive "col" is leftward shift and vice versa
 
-    #Additionional phase corrections. A loop.
+    #Additionional phase corrections. A loop. Only done if lowpass_fit = True
     add_phase_corrections : int = 3
 
     #Do phase unwrapping
-    unwrap : bool = True
+    unwrap : bool = False
 
     #Fit a phase background with first frame.
     first_phase_background : bool = False
@@ -191,5 +192,8 @@ class reconstruction_settings(video_settings, index_settings):
     #Normalize field
     normalize_field : bool = True
 
-    #Additional mask, either "sinc" or "jinc" , or else then nothin.
-    mask_f : str = 'sinc'
+    #Additional mask, either "sinc" or "jinc" , or else then nothing.
+    mask_f : str = ''
+
+    #Mask_out - Mask out regions in the fftimage that can be a source of noise.
+    mask_out : bool = True

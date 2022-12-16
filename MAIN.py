@@ -40,4 +40,4 @@ if __name__ == "__main__":
     
 #Loading the field.
 #f = np.load(f'Results/{CONFIG.main_settings.project_name}/field/field.npy')
-#f = np.array([simple_plot.correctfield(f[i]) for i in range(len(f))], dtype = np.complex64)
+
