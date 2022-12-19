@@ -51,7 +51,7 @@ def main():
     im = phase_utils.get_shifted_fft(im, filter_radius = [], correct_fourier_peak=CONFIG.reconstruction_settings().correct_fourier_peak)
 
     #####Plot fft image
-    plt.figure(figsize = (12, 12))
+    plt.figure(figsize = (8, 8))
     plt.imshow(np.log(np.abs(im)),cmap = 'gray')    
     plt.axhline(y = CONFIG.video_settings.height/2, linewidth=2, color = 'red') if CONFIG.video_settings.height!= 1 else plt.axhline(y = height/2, linewidth=2, color = 'red')
     plt.axvline(x = CONFIG.video_settings.width/2, linewidth=2, color = 'red') if CONFIG.video_settings.width!= 1 else plt.axvline(x = width/2, linewidth=2, color = 'red')

@@ -17,10 +17,10 @@ class main_settings:
     """
     
     #Filename shall be an .avi file with the full path.
-    filename_folder : str = 'D:/December14/PSL450nm_PBSEvery1_3/'
+    filename_folder : str = 'D:/December14/Cells/Insolinoma1Every1_1_2/'
 
     #Name project where the results shall be stored.
-    project_name : str = 'PSL450nm_PBSEvery1_3'
+    project_name : str = 'Insolinoma1Every1_1_2_x'
 
     #The filename that ends with holography. The file we want
     filename_holo : str = [f for f in glob.glob(filename_folder + "/*.avi") if f.endswith('holo.avi')][0] if [f for f in glob.glob(filename_folder + "/*.avi") if 
@@ -100,7 +100,7 @@ class index_settings:
     """
 
     #Cap the maximum number of frames.
-    max_frames : int = 200
+    max_frames : int = 100
 
     #Which frame to start processing from
     start_frame : int = 0

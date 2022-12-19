@@ -40,4 +40,3 @@ if __name__ == "__main__":
     
 #Loading the field.
 #f = np.load(f'Results/{CONFIG.main_settings.project_name}/field/field.npy')
-

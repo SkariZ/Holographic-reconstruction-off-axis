@@ -63,7 +63,7 @@ def correct_phase_4order (phase_img, G, polynomial):
     
     return phase_background
 
-def phaseunwrap_skimage(field):
+def phaseunwrap_skimage(field, norm_phase_after = True):
     """
     Unwrap the phase of the field using skimage.
 
@@ -81,6 +81,12 @@ def phaseunwrap_skimage(field):
 
     #Unwrap the phase
     phase_unwrapped = unwrap_phase(phase)
+
+    #Normalize the phase to be between -pi and pi after unwrapping
+    if norm_phase_after:
+        phase_unwrapped = phase_unwrapped - np.min(phase_unwrapped)
+        phase_unwrapped = phase_unwrapped / np.max(phase_unwrapped)
+        phase_unwrapped = phase_unwrapped * 2*np.pi - np.pi
 
     return np.abs(field)*np.exp(1j * phase_unwrapped)
 
