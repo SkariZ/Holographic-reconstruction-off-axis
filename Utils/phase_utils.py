@@ -522,10 +522,10 @@ def pre_calculations(
             fftImage2, 
             mask_list[0], 
             min_distance = 50, 
-            sigma = 3, 
+            sigma = 2.75, 
             max_peaks = 6, 
             min_distance_from_center = 50, 
-            mask_out_size = 60, 
+            mask_out_size = 35, 
             mask_out_case = case)
 
         #Update mask list.
@@ -835,7 +835,7 @@ def mask_out_pipeline(
     sigma = 3, 
     max_peaks = 6, 
     min_distance_from_center = 50, 
-    mask_out_size = 35, 
+    mask_out_size = 30, 
     mask_out_case = 'ellipse'):
 
     """

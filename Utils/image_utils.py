@@ -51,13 +51,13 @@ def cropping_image(image, h, w, corner = 4):
         image = cv2.resize(image, (w, h), interpolation = cv2.INTER_AREA)
     else: #Crop out the "corner"
         if corner == 1:
-            image = image[:h, :w]#image[-h:, -w:] #image[:h, :w] # Important to keep check here which corner we look at.
+            image = image[:h, :w] #Top left
         elif corner == 2:
-            image = image[:h, -w:]
+            image = image[:h, -w:] #Top right
         elif corner == 3:
-            image = image[-h:, :w]
+            image = image[-h:, :w] #Bottom left
         elif corner == 4:
-            image = image[-h:, -w:]
+            image = image[-h:, -w:] #Bottom right
     return image
     
 def first_frame(video, height, width, H, W, corner=1, edges = True, index=1):

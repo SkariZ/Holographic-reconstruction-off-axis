@@ -6,7 +6,7 @@ Created on Thu Oct  7 18:26:19 2021
 """
 import numpy as np
 
-def get(idx, start_frame, vid_shift, frame_disp_vid, max_frames, method = 'old', every = 5, index = []):
+def get(idx, start_frame, vid_shift, frame_disp_vid, max_frames, method = 'old', every = 9, index = []):
     "Function for retrieving which indeces to extract, contains a few methods."
     
     if method == 'old':
@@ -80,7 +80,7 @@ def get(idx, start_frame, vid_shift, frame_disp_vid, max_frames, method = 'old',
                     input_mp.append(shift + k + extra_disp)
 
     elif method == 'every':
-        frames_to_extract = np.arange(0, len(idx), every)
+        frames_to_extract = np.arange(start_frame, len(idx), every)
         input_mp = idx[frames_to_extract]
 
     elif method == 'own_idx':

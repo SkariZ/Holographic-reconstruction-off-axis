@@ -17,10 +17,10 @@ class main_settings:
     """
     
     #Filename shall be an .avi file with the full path.
-    filename_folder : str = 'D:/December14/Cells/Insolinoma1Every1_1_2/'
+    filename_folder : str = 'D:/Feb15/S2_Sushi_33VolProcOpti_20ulPSL240nm_41fps_iSCAT_holo_Every1_2'
 
     #Name project where the results shall be stored.
-    project_name : str = 'Insolinoma1Every1_1_2_x'
+    project_name : str = 'S2_Sushi_33VolProcOpti_20ulPSL240nm_41fps_iSCAT_holo_Every1_2'
 
     #The filename that ends with holography. The file we want
     filename_holo : str = [f for f in glob.glob(filename_folder + "/*.avi") if f.endswith('holo.avi')][0] if [f for f in glob.glob(filename_folder + "/*.avi") if 
@@ -79,13 +79,13 @@ class video_settings:
     height : int = 1300
 
     #size width
-    width : int = 1700
+    width : int = 1300
     
-    #Which corner to crop in image [[],[]], upper left 0, upper right 1, lower left 2, lower right 3.
-    corner : int = 1
+    #Which corner to crop in image [[],[]], upper left 1, upper right 2, lower left 3, lower right 4.
+    corner : int = 2
 
     # If you now the period of which the camera shifts, add this here. If 0 it will be estimated. (Does only matter if you will do background subtraction later, and only for index method old and pre-, prepost)
-    vid_shift : float = 40
+    vid_shift : float = 10
 
     #Edges- Some videos have black edges, some do not. 0 = no black edges, 1 = black edges. (Do not change, keep at 1)
     edges : bool = True
@@ -103,13 +103,13 @@ class index_settings:
     max_frames : int = 100
 
     #Which frame to start processing from
-    start_frame : int = 0
+    start_frame : int = 3500
 
     #How many frames before and after the vid shift that are looked at. (Only affects index_method = old and prepost)
     frame_disp_vid : int = 4 
 
     #Which indexes to take out beforehand. 'old', 'all' or 'pre2',...'pre5', prepost, 'every' and 'own_idx' . 'all' is 0,1,2,3..... The others are a bit special.
-    index_method : str = 'all'
+    index_method : str = 'every'
 
     #Input manually the frames you want to extract. Only works if index_method = 'own_index'
     index : list[int] = field(default_factory=lambda: [ ])
@@ -183,11 +183,11 @@ class reconstruction_settings(video_settings, index_settings):
     #Which frame to do precalculations with.
     first_frame_precalc = index_settings.start_frame
 
-    #Do a lowpassfit of background. This is necessary in Twilight 
-    lowpass_fit : bool = False
+    #Do a lowpassfit of background. This is necessary in Twilight off-axis 
+    lowpass_fit : bool = True
 
     #For lowpass filtering when doing background estimation and subraction. First one is the fourier selection filter, the other are set costumized.
-    radius_lowpass : list[int] = field(default_factory=lambda: []) #175, 5, 5, 5
+    radius_lowpass : list[int] = field(default_factory=lambda: [225, 10, 10, 10]) #175, 5, 5, 5
     
     #Shift fourier peak slightly. Manually, if the fourier center is slightly off..
     correct_fourier_peak : list[int] = field(default_factory=lambda: [0, 0]) #Positive row is upward shift, positive "col" is leftward shift and vice versa
@@ -195,11 +195,11 @@ class reconstruction_settings(video_settings, index_settings):
     #Additionional phase corrections. A loop. Only done if lowpass_fit = True
     add_phase_corrections : int = 3
 
-    #Do phase unwrapping
-    unwrap : bool = True
+    #Do phase unwrapping. Do not use.
+    unwrap : bool = False
 
     #Fit a phase background with first frame.
-    first_phase_background : bool = True
+    first_phase_background : bool = False
 
     #Cropping to remove weird edges etc.
     cropping : int = 50
