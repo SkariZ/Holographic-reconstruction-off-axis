@@ -3,6 +3,16 @@ import numpy as np
 #TODO add commenting etc.
 
 def data_to_real(img):
+    """
+    Transforms a complex image to a real image.
+
+    Input:
+        img : complex image
+    Output:
+        Real image.
+
+    """
+
     image = np.zeros((img.shape[0],img.shape[1],2), dtype = np.float32)
     image[..., 0] = img.real
     image[..., 1] = img.imag
@@ -97,7 +107,7 @@ def vec_to_field(vec, pupil_radius, shape, mask=None, to_real=False):
     if to_real:
         field = data_to_real(field)
 
-    return 
+    return field
 
 def vec_to_field_multi(vecs, pupil_radius, shape, mask=None, to_real = False):
     """

@@ -252,8 +252,10 @@ def main():
     if CONFIG.reconstruction_settings.normalize_field:
         field = u.correctfield(field, n_iter = 5)
 
-    ###TODO add compress field with fft save.
-
+    #Compress field with fft
+    if CONFIG.save_settings.fft_save:
+        from Utils import fft_loader
+        field = fft_loader.field_to_vec_multi(fields = field, pupil_radius=CONFIG.save_settings.pupil_radius)
 
     #Save field and indexes to file
     np.save(f'Results/{CONFIG.main_settings.project_name}/field/field.npy', field)
@@ -261,7 +263,7 @@ def main():
 
     #Plot the fourier selection filter.
     if CONFIG.plot_settings.plot_all:
-        a = u.downsample2d(masks[0], CONFIG.plot_settings.downsamplesize) # Dwonsample somwehat
+        a = u.downsample2d(masks[0], CONFIG.plot_settings.downsamplesize) # Downsample somwehat
         u.save_frame(a, f'Results/{CONFIG.main_settings.project_name}/plots', name = 'fourier_selection_mask')
 
     gc.collect()

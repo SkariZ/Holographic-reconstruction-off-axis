@@ -17,10 +17,10 @@ class main_settings:
     """
     
     #Filename shall be an .avi file with the full path.
-    filename_folder : str = 'D:/Feb15/S2_Sushi_33VolProcOpti_20ulPSL240nm_41fps_iSCAT_holo_Every1_2'
+    filename_folder : str = 'D:/Feb15/SushiCells_33VolProcOpti_41fps_iSCAT_holo_Every1_10'
 
     #Name project where the results shall be stored.
-    project_name : str = 'S2_Sushi_33VolProcOpti_20ulPSL240nm_41fps_iSCAT_holo_Every1_2'
+    project_name : str = 'SushiCells_33VolProcOpti_41fps_iSCAT_holo_Every1_10_bs'
 
     #The filename that ends with holography. The file we want
     filename_holo : str = [f for f in glob.glob(filename_folder + "/*.avi") if f.endswith('holo.avi')][0] if [f for f in glob.glob(filename_folder + "/*.avi") if 
@@ -100,10 +100,10 @@ class index_settings:
     """
 
     #Cap the maximum number of frames.
-    max_frames : int = 100
+    max_frames : int = 10
 
     #Which frame to start processing from
-    start_frame : int = 3500
+    start_frame : int = 0
 
     #How many frames before and after the vid shift that are looked at. (Only affects index_method = old and prepost)
     frame_disp_vid : int = 4 
@@ -187,7 +187,7 @@ class reconstruction_settings(video_settings, index_settings):
     lowpass_fit : bool = True
 
     #For lowpass filtering when doing background estimation and subraction. First one is the fourier selection filter, the other are set costumized.
-    radius_lowpass : list[int] = field(default_factory=lambda: [225, 10, 10, 10]) #175, 5, 5, 5
+    radius_lowpass : list[int] = field(default_factory=lambda: [225, 5, 5, 5]) #175, 5, 5, 5
     
     #Shift fourier peak slightly. Manually, if the fourier center is slightly off..
     correct_fourier_peak : list[int] = field(default_factory=lambda: [0, 0]) #Positive row is upward shift, positive "col" is leftward shift and vice versa
@@ -212,3 +212,16 @@ class reconstruction_settings(video_settings, index_settings):
 
     #Mask_out - Mask out regions in the fftimage that can be a source of noise.
     mask_out : bool = True
+
+@dataclass
+class save_settings(reconstruction_settings, video_settings):
+
+    #Save field as vector. I.e compress the field to a vector.
+    fft_save : bool = True
+
+    #Radius of the pupil. Only used if fft_save = True
+    if reconstruction_settings.lowpass_fit:
+        pupil_radius : int = 225 # OBS hardcoded for now. #reconstruction_settings.radius_lowpass[0]
+    else:
+        pupil_radius : int = int(max([video_settings.height - reconstruction_settings.cropping*2, video_settings.width - reconstruction_settings.cropping*2]) / 6)
+    

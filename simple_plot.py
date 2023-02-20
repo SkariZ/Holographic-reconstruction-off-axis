@@ -13,6 +13,7 @@ import numpy as np, cv2, os
 from Utils import phase_utils
 from Utils import Utils_z
 from Utils import image_utils
+from Utils import fft_loader
 
 def subtract_data(data, frame_disp_vid, sign = 1):
     df = []
@@ -41,7 +42,15 @@ def main():
     downsample_size = CONFIG.plot_settings.downsamplesize
 
     #Plot the first frame.
-    field0 = np.load(f'Results/{CONFIG.main_settings.project_name}/field/field.npy')[0]     
+    if CONFIG.save_settings.fft_save:
+        field0 = fft_loader.vec_to_field_multi(
+                vecs = np.load(f'Results/{CONFIG.main_settings.project_name}/field/field.npy')[0:1], 
+                shape = (CONFIG.video_settings.height - 2*CONFIG.reconstruction_settings.cropping, CONFIG.video_settings.width - 2*CONFIG.reconstruction_settings.cropping),
+                pupil_radius=CONFIG.save_settings.pupil_radius
+            )
+    else:
+        field0 = np.load(f'Results/{CONFIG.main_settings.project_name}/field/field.npy')[0]
+
     image_utils.save_frame(field0.real, c_str, name = 'optical_field_real')
     image_utils.save_frame(field0.imag, c_str, name = 'optical_field_imag')
     image_utils.save_frame(np.abs(field0), c_str, name = 'intensity_image')
@@ -61,6 +70,14 @@ def main():
     ##### Plot all 
     if CONFIG.plot_settings.plot_all:
        field = np.load(f'Results/{CONFIG.main_settings.project_name}/field/field.npy')
+
+       #Load field if fft_save is true
+       if CONFIG.save_settings.fft_save:
+            field = fft_loader.vec_to_field_multi(
+                    vecs = field, 
+                    shape = (CONFIG.video_settings.height - 2*CONFIG.reconstruction_settings.cropping, CONFIG.video_settings.width - 2*CONFIG.reconstruction_settings.cropping),
+                    pupil_radius=CONFIG.save_settings.pupil_radius
+                )
 
         #Plot all frames
        for i in range(len(field)):
