@@ -47,7 +47,7 @@ def main():
                 vecs = np.load(f'Results/{CONFIG.main_settings.project_name}/field/field.npy')[0:1], 
                 shape = (CONFIG.video_settings.height - 2*CONFIG.reconstruction_settings.cropping, CONFIG.video_settings.width - 2*CONFIG.reconstruction_settings.cropping),
                 pupil_radius=CONFIG.save_settings.pupil_radius
-            )
+            )[0]
     else:
         field0 = np.load(f'Results/{CONFIG.main_settings.project_name}/field/field.npy')[0]
 
