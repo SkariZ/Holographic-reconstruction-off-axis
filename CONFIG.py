@@ -216,7 +216,7 @@ class reconstruction_settings(video_settings, index_settings):
 @dataclass
 class save_settings(reconstruction_settings, video_settings):
 
-    #Save field as vector. I.e compress the field to a vector.
+    #Save field as vector. I.e compress the field to a vector. Saves space.
     fft_save : bool = True
 
     #Radius of the pupil. Only used if fft_save = True
