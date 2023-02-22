@@ -33,7 +33,7 @@ def subtract_data(data, frame_disp_vid, sign = 1):
     return df
 
 def main():
-    c_str = f'Results/{CONFIG.main_settings.project_name}/plots'
+    c_str = f'{CONFIG.main_settings.root_folder}/{CONFIG.main_settings.project_name}/plots'
 
     #Settings
     video = cv2.VideoCapture(CONFIG.main_settings.filename_holo) # videobject
@@ -44,12 +44,12 @@ def main():
     #Plot the first frame.
     if CONFIG.save_settings.fft_save:
         field0 = fft_loader.vec_to_field_multi(
-                vecs = np.load(f'Results/{CONFIG.main_settings.project_name}/field/field.npy')[0:1], 
+                vecs = np.load(f'{CONFIG.main_settings.root_folder}/{CONFIG.main_settings.project_name}/field/field.npy')[0:1], 
                 shape = (CONFIG.video_settings.height - 2*CONFIG.reconstruction_settings.cropping, CONFIG.video_settings.width - 2*CONFIG.reconstruction_settings.cropping),
                 pupil_radius=CONFIG.save_settings.pupil_radius
             )[0]
     else:
-        field0 = np.load(f'Results/{CONFIG.main_settings.project_name}/field/field.npy')[0]
+        field0 = np.load(f'{CONFIG.main_settings.root_folder}/{CONFIG.main_settings.project_name}/field/field.npy')[0]
 
     image_utils.save_frame(field0.real, c_str, name = 'optical_field_real')
     image_utils.save_frame(field0.imag, c_str, name = 'optical_field_imag')
@@ -69,7 +69,7 @@ def main():
 
     ##### Plot all 
     if CONFIG.plot_settings.plot_all:
-       field = np.load(f'Results/{CONFIG.main_settings.project_name}/field/field.npy')
+       field = np.load(f'{CONFIG.main_settings.root_folder}/{CONFIG.main_settings.project_name}/field/field.npy')
 
        #Load field if fft_save is true
        if CONFIG.save_settings.fft_save:

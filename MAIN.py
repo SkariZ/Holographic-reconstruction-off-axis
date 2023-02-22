@@ -40,3 +40,12 @@ if __name__ == "__main__":
     
 #Loading the field.
 #f = np.load(f'Results/{CONFIG.main_settings.project_name}/field/field.npy')
+
+#from Utils import fft_loader
+#field = fft_loader.vec_to_field_multi(
+#        vecs = f, 
+#        shape = (CONFIG.video_settings.height - 2*CONFIG.reconstruction_settings.cropping, CONFIG.video_settings.width - 2*CONFIG.reconstruction_settings.cropping),
+#        pupil_radius=CONFIG.save_settings.pupil_radius
+#    )
+
+#from Utils import Utils_z as Z
