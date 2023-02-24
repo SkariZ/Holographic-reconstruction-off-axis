@@ -17,10 +17,10 @@ class main_settings:
     """
     
     #Filename shall be an .avi file with the full path.
-    filename_folder : str = 'D:/CellPulse/CellsPulse1h_t1_spot2_Every1_2'
+    filename_folder : str = 'D:/CellPulse/CellsPulse1h_t5_spot5_Every1_1'
 
     #Name project where the results shall be stored.
-    project_name : str = 'CellsPulse1h_t1_spot2_Every1_2'
+    project_name : str = 'CellsPulse1h_t5_spot5'
 
     #Root folder where the results shall be stored.
     root_folder : str = 'D:/CellPulse_fields'
@@ -84,10 +84,10 @@ class video_settings:
     """
     
     #size height
-    height : int = 1300
+    height : int = 1380
 
     #size width
-    width : int = 1700
+    width : int = 1380
     
     #Which corner to crop in image [[],[]], upper left 1, upper right 2, lower left 3, lower right 4.
     corner : int = 2
@@ -108,7 +108,7 @@ class index_settings:
     """
 
     #Cap the maximum number of frames.
-    max_frames : int = 50
+    max_frames : int = 1000
 
     #Which frame to start processing from
     start_frame : int = 0
@@ -129,10 +129,10 @@ class plot_settings:
     """
 
     #Plot all frames
-    plot_all : bool = True
+    plot_all : bool = False
 
     #Plot z
-    plot_z : bool = True
+    plot_z : bool = False
 
     #Plot subtraction plots
     plot_sub : bool = False
@@ -162,7 +162,7 @@ class z_propagation_settings(index_settings, video_settings):
     """
 
     #Z_prop - The z-propagation distance. If this set, then we do not estimate the focus on first frame.
-    z_prop : int = -2.1
+    z_prop : int = 0
 
     #Find focus for first frame and use for all other frames later
     find_focus_first_frame : bool = False

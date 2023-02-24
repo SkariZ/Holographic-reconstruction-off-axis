@@ -34,12 +34,11 @@ if __name__ == "__main__":
     ##### Plot frames.
     start_time = time.time()
     simple_plot.main()    
-    print("Total elapsed time for plotting--- %s seconds ---" % (time.time() - start_time))
-
+    
     print("TOTAL elapsed time for script --- %s minutes ---" % str((time.time() - START) / 60))
     
 #Loading the field.
-#f = np.load(f'Results/{CONFIG.main_settings.project_name}/field/field.npy')
+#f = np.load(f'{CONFIG.main_settings.root_folder}/{CONFIG.main_settings.project_name}/field/field.npy')
 
 #from Utils import fft_loader
 #field = fft_loader.vec_to_field_multi(

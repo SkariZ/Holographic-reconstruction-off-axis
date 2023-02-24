@@ -26,8 +26,7 @@ def imgtofield(img,
                G, 
                polynomial, 
                kx_add_ky,
-               if_lowpass_b = False,
-               unwrap = False, 
+               if_lowpass_b = False, 
                cropping=50,
                mask_f = [], # sinc, jinc etc.
                z_prop = 0,
@@ -96,8 +95,8 @@ def imgtofield(img,
     E_field_corr2 = E_field_corr * np.exp(- 1j * np.median(phase_img2 + np.pi - 1))
     
     #Do unwrapping of the phase
-    if unwrap:
-        E_field_corr2 = phase_utils.phaseunwrap_skimage(E_field_corr2)
+    #if unwrap:
+    #    E_field_corr2 = phase_utils.phaseunwrap_skimage(E_field_corr2)
 
     #Focus the field
     if np.abs(z_prop) > 0:  
@@ -128,7 +127,7 @@ def video_to_field_n(index):
                              polynomial, 
                              kx_add_ky,
                              if_lowpass_b = CONFIG.reconstruction_settings.lowpass_fit,
-                             unwrap = CONFIG.reconstruction_settings.unwrap, 
+                             #unwrap = CONFIG.reconstruction_settings.unwrap, 
                              cropping = CONFIG.reconstruction_settings.cropping,  
                              mask_f = mask_f,
                              z_prop = CONFIG.z_propagation_settings.z_prop,
