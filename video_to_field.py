@@ -26,8 +26,7 @@ def imgtofield(img,
                G, 
                polynomial, 
                kx_add_ky,
-               if_lowpass_b = False,
-               unwrap = False, 
+               if_lowpass_b = False, 
                cropping=50,
                mask_f = [], # sinc, jinc etc.
                z_prop = 0,
@@ -96,8 +95,8 @@ def imgtofield(img,
     E_field_corr2 = E_field_corr * np.exp(- 1j * np.median(phase_img2 + np.pi - 1))
     
     #Do unwrapping of the phase
-    if unwrap:
-        E_field_corr2 = phase_utils.phaseunwrap_skimage(E_field_corr2)
+    #if unwrap:
+    #    E_field_corr2 = phase_utils.phaseunwrap_skimage(E_field_corr2)
 
     #Focus the field
     if np.abs(z_prop) > 0:  
@@ -128,7 +127,7 @@ def video_to_field_n(index):
                              polynomial, 
                              kx_add_ky,
                              if_lowpass_b = CONFIG.reconstruction_settings.lowpass_fit,
-                             unwrap = CONFIG.reconstruction_settings.unwrap, 
+                             #unwrap = CONFIG.reconstruction_settings.unwrap, 
                              cropping = CONFIG.reconstruction_settings.cropping,  
                              mask_f = mask_f,
                              z_prop = CONFIG.z_propagation_settings.z_prop,
@@ -258,13 +257,13 @@ def main():
         field = fft_loader.field_to_vec_multi(fields = field, pupil_radius=CONFIG.save_settings.pupil_radius)
 
     #Save field and indexes to file
-    np.save(f'Results/{CONFIG.main_settings.project_name}/field/field.npy', field)
-    np.save(f'Results/{CONFIG.main_settings.project_name}/field/idx.npy', input_mp)
+    np.save(f'{CONFIG.main_settings.root_folder}/{CONFIG.main_settings.project_name}/field/field.npy', field)
+    np.save(f'{CONFIG.main_settings.root_folder}/{CONFIG.main_settings.project_name}/field/idx.npy', input_mp)
 
     #Plot the fourier selection filter.
     if CONFIG.plot_settings.plot_all:
         a = u.downsample2d(masks[0], CONFIG.plot_settings.downsamplesize) # Downsample somwehat
-        u.save_frame(a, f'Results/{CONFIG.main_settings.project_name}/plots', name = 'fourier_selection_mask')
+        u.save_frame(a, f'{CONFIG.main_settings.root_folder}/{CONFIG.main_settings.project_name}/plots', name = 'fourier_selection_mask')
 
     gc.collect()
     del field

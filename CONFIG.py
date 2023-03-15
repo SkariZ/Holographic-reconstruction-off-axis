@@ -17,16 +17,19 @@ class main_settings:
     """
     
     #Filename shall be an .avi file with the full path.
-    filename_folder : str = 'D:/Feb15/SushiCells_33VolProcOpti_41fps_iSCAT_holo_Every1_10'
+    filename_folder : str = 'D:/CellPulse/CellsPulse1h_t5_spot5_Every1_1'
 
     #Name project where the results shall be stored.
-    project_name : str = 'SushiCells_33VolProcOpti_41fps_iSCAT_holo_Every1_10_bs'
+    project_name : str = 'CellsPulse1h_t5_spot5'
+
+    #Root folder where the results shall be stored.
+    root_folder : str = 'D:/CellPulse_fields'
 
     #The filename that ends with holography. The file we want
     filename_holo : str = [f for f in glob.glob(filename_folder + "/*.avi") if f.endswith('holo.avi')][0] if [f for f in glob.glob(filename_folder + "/*.avi") if 
     f.endswith('holo.avi')][0] else FileNotFoundError(".avi file not found in folder // or .avi file does note end with holo.avi. Change filename...")
 
-    #Paths that will be constructed in Results/project_name/
+    #Paths that will be constructed in rooft_folder/project_name/
     standard_paths : list  = field(default_factory = lambda:['field', 'plots'])
 
     standard_paths_plot : list = field(default_factory = lambda:['frames','prop', 'sub'])
@@ -43,24 +46,29 @@ class main_settings:
         """
         Create the folder for the results.
         """
-        if not os.path.isdir(f'Results/{self.project_name}'):
-            os.mkdir(f'Results/{self.project_name}')
+
+        #Check if root folder exists.
+        if not os.path.isdir(self.root_folder):
+            os.mkdir(self.root_folder)
+
+        if not os.path.isdir(f'{self.root_folder}/{self.project_name}'):
+            os.mkdir(f'{self.root_folder}/{self.project_name}')
 
         for path in self.standard_paths:
-            if not os.path.isdir(f'Results/{self.project_name}/{path}'):
-                os.mkdir(f'Results/{self.project_name}/{path}')
+            if not os.path.isdir(f'{self.root_folder}/{self.project_name}/{path}'):
+                os.mkdir(f'{self.root_folder}/{self.project_name}/{path}')
 
         #In plots_folder
         for path in self.standard_paths_plot:
-            if not os.path.isdir(f'Results/{self.project_name}/plots/{path}'):
-                os.mkdir(f'Results/{self.project_name}/plots/{path}')
+            if not os.path.isdir(f'{self.root_folder}/{self.project_name}/plots/{path}'):
+                os.mkdir(f'{self.root_folder}/{self.project_name}/plots/{path}')
 
 
     def print_main_settings(self):
         print(f"Project name --- {self.project_name}")
 
     def save_config_to_results(self):
-        shutil.copy('config.py', f'Results/{self.project_name}/config.py')
+        shutil.copy('config.py', f'{self.root_folder}/{self.project_name}/config.py')
 
 
 @dataclass
@@ -76,16 +84,16 @@ class video_settings:
     """
     
     #size height
-    height : int = 1300
+    height : int = 1380
 
     #size width
-    width : int = 1300
+    width : int = 1380
     
     #Which corner to crop in image [[],[]], upper left 1, upper right 2, lower left 3, lower right 4.
     corner : int = 2
 
     # If you now the period of which the camera shifts, add this here. If 0 it will be estimated. (Does only matter if you will do background subtraction later, and only for index method old and pre-, prepost)
-    vid_shift : float = 10
+    vid_shift : float = 5
 
     #Edges- Some videos have black edges, some do not. 0 = no black edges, 1 = black edges. (Do not change, keep at 1)
     edges : bool = True
@@ -100,16 +108,16 @@ class index_settings:
     """
 
     #Cap the maximum number of frames.
-    max_frames : int = 10
+    max_frames : int = 1000
 
     #Which frame to start processing from
     start_frame : int = 0
 
     #How many frames before and after the vid shift that are looked at. (Only affects index_method = old and prepost)
-    frame_disp_vid : int = 4 
+    frame_disp_vid : int = 4
 
     #Which indexes to take out beforehand. 'old', 'all' or 'pre2',...'pre5', prepost, 'every' and 'own_idx' . 'all' is 0,1,2,3..... The others are a bit special.
-    index_method : str = 'every'
+    index_method : str = 'all'
 
     #Input manually the frames you want to extract. Only works if index_method = 'own_index'
     index : list[int] = field(default_factory=lambda: [ ])
@@ -121,10 +129,10 @@ class plot_settings:
     """
 
     #Plot all frames
-    plot_all : bool = True
+    plot_all : bool = False
 
     #Plot z
-    plot_z : bool = True
+    plot_z : bool = False
 
     #Plot subtraction plots
     plot_sub : bool = False
@@ -187,7 +195,8 @@ class reconstruction_settings(video_settings, index_settings):
     lowpass_fit : bool = True
 
     #For lowpass filtering when doing background estimation and subraction. First one is the fourier selection filter, the other are set costumized.
-    radius_lowpass : list[int] = field(default_factory=lambda: [225, 5, 5, 5]) #175, 5, 5, 5
+    
+    radius_lowpass : list[int] = field(default_factory=lambda: [225, 10, 10, 10]) #175, 5, 5, 5
     
     #Shift fourier peak slightly. Manually, if the fourier center is slightly off..
     correct_fourier_peak : list[int] = field(default_factory=lambda: [0, 0]) #Positive row is upward shift, positive "col" is leftward shift and vice versa
