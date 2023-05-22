@@ -17,13 +17,13 @@ class main_settings:
     """
     
     #Filename shall be an .avi file with the full path.
-    filename_folder : str = 'D:/CellPulse/CellsPulse1h_t5_spot5_Every1_1'
+    filename_folder : str = 'D:/iSCAT_cells/Cell_wBodioy_45min_3fps_wOpti_Every1_5/'
 
     #Name project where the results shall be stored.
-    project_name : str = 'CellsPulse1h_t5_spot5'
+    project_name : str = 'Cell_wBodioy_45min_3fps_wOpti_Every1_5'
 
     #Root folder where the results shall be stored.
-    root_folder : str = 'D:/CellPulse_fields'
+    root_folder : str = 'Results/'
 
     #The filename that ends with holography. The file we want
     filename_holo : str = [f for f in glob.glob(filename_folder + "/*.avi") if f.endswith('holo.avi')][0] if [f for f in glob.glob(filename_folder + "/*.avi") if 
@@ -84,10 +84,10 @@ class video_settings:
     """
     
     #size height
-    height : int = 1380
+    height : int = 1450
 
     #size width
-    width : int = 1380
+    width : int = 1930
     
     #Which corner to crop in image [[],[]], upper left 1, upper right 2, lower left 3, lower right 4.
     corner : int = 2
@@ -108,7 +108,7 @@ class index_settings:
     """
 
     #Cap the maximum number of frames.
-    max_frames : int = 1000
+    max_frames : int = 500
 
     #Which frame to start processing from
     start_frame : int = 0
@@ -117,10 +117,10 @@ class index_settings:
     frame_disp_vid : int = 4
 
     #Which indexes to take out beforehand. 'old', 'all' or 'pre2',...'pre5', prepost, 'every' and 'own_idx' . 'all' is 0,1,2,3..... The others are a bit special.
-    index_method : str = 'all'
+    index_method : str = 'own_idx'
 
     #Input manually the frames you want to extract. Only works if index_method = 'own_index'
-    index : list[int] = field(default_factory=lambda: [ ])
+    index : list[int] = field(default_factory=lambda: [ 10,  141,  272,  404,  535,  666,  798,  929, 1060, 1192, 1323, 1455])
 
 @dataclass
 class plot_settings:
@@ -129,19 +129,19 @@ class plot_settings:
     """
 
     #Plot all frames
-    plot_all : bool = False
+    plot_all : bool = True
 
     #Plot z
-    plot_z : bool = False
+    plot_z : bool = True
 
     #Plot subtraction plots
     plot_sub : bool = False
 
     #DPI
-    DPI : int = 200
+    DPI : int = 225
 
     #Downsample
-    downsamplesize : int = 3
+    downsamplesize : int = 2
 
     #Annotate plots
     annotate : bool = True
@@ -173,13 +173,13 @@ class z_propagation_settings(index_settings, video_settings):
 
     ###Z-search propagation distance.
     #low
-    z_search_low : int = -30
+    z_search_low : int = -20
 
     #high
-    z_search_high : int = 30
+    z_search_high : int = 20
 
     #Step size
-    z_steps : int = 51
+    z_steps : int = 71
 
 
 @dataclass
@@ -192,10 +192,9 @@ class reconstruction_settings(video_settings, index_settings):
     first_frame_precalc = index_settings.start_frame
 
     #Do a lowpassfit of background. This is necessary in Twilight off-axis 
-    lowpass_fit : bool = True
+    lowpass_fit : bool = False
 
     #For lowpass filtering when doing background estimation and subraction. First one is the fourier selection filter, the other are set costumized.
-    
     radius_lowpass : list[int] = field(default_factory=lambda: [225, 10, 10, 10]) #175, 5, 5, 5
     
     #Shift fourier peak slightly. Manually, if the fourier center is slightly off..
@@ -211,10 +210,10 @@ class reconstruction_settings(video_settings, index_settings):
     first_phase_background : bool = False
 
     #Cropping to remove weird edges etc.
-    cropping : int = 50
+    cropping : int = 0
 
     #Normalize field
-    normalize_field : bool = True
+    normalize_field : bool = False
 
     #Additional mask, either "sinc" or "jinc" , or else then nothing.
     mask_f : str = ''
@@ -233,4 +232,3 @@ class save_settings(reconstruction_settings, video_settings):
         pupil_radius : int = 225 # OBS hardcoded for now. #reconstruction_settings.radius_lowpass[0]
     else:
         pupil_radius : int = int(max([video_settings.height - reconstruction_settings.cropping*2, video_settings.width - reconstruction_settings.cropping*2]) / 6)
-    

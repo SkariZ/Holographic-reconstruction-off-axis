@@ -62,7 +62,10 @@ def imgtofield(img,
     E_field = np.fft.ifft2(E_field) 
 
     #Removes edges in x and y. Some edge effects
-    E_field_cropped = E_field[cropping:-cropping, cropping:-cropping]
+    if cropping>0:
+        E_field_cropped = E_field[cropping:-cropping, cropping:-cropping]
+    else:
+        E_field_cropped = E_field
     
     #If we use the same first phase background correction on all the data.
     if len(first_phase_background)>0:

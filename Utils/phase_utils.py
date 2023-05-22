@@ -521,11 +521,11 @@ def pre_calculations(
         new_mask = mask_out_pipeline(
             fftImage2, 
             mask_list[0], 
-            min_distance = 35, 
+            min_distance = 25, 
             sigma = 2.75, 
             max_peaks = 6, 
-            min_distance_from_center = 75, 
-            mask_out_size = 35, 
+            min_distance_from_center = 100, 
+            mask_out_size = 25, 
             mask_out_case = case)
 
         #Update mask list.
@@ -536,7 +536,10 @@ def pre_calculations(
         if len(mask_list)>1:
             phase_img = phase_frequencefilter(fftImage2, mask = mask_list[1] , is_field = False, crop = cropping)
         else:
-            phase_img = np.angle(np.fft.ifft2(np.fft.fftshift(fftImage2))[cropping:-cropping, cropping:-cropping])
+            if cropping > 0: 
+                phase_img = np.angle(np.fft.ifft2(np.fft.fftshift(fftImage2))[cropping:-cropping, cropping:-cropping])
+            else: 
+                phase_img = np.angle(np.fft.ifft2(np.fft.fftshift(fftImage2)))
         # Get the phase background from phase image.
         phase_background = correct_phase_4order(phase_img, G, polynomial)
     else:
@@ -667,7 +670,10 @@ def imgtofield_simple(img,
     E_field = np.fft.ifft2(np.fft.fftshift(fftImage2)) 
     
     #Crop optical field to avoid edge effects.
-    E_field_cropped = E_field[cropping:-cropping, cropping:-cropping]
+    if cropping > 0:
+        E_field_cropped = E_field[cropping:-cropping, cropping:-cropping]
+    else:
+        E_field_cropped = E_field
     
     #Get phase image.
     phase_img  = np.angle(E_field_cropped) 

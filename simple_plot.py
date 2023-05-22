@@ -81,6 +81,7 @@ def main():
 
         #Plot all frames
        for i in range(len(field)):
+           #field[i] = Utils_z.refocus_field_z(field[i], 3.2, padding = 128)
            a = np.concatenate((field[i].real, field[i].imag), axis = 1)
            a = image_utils.downsample2d(a, downsample_size) # Downsample somwehat
            
@@ -100,7 +101,7 @@ def main():
            
            for i, zi in enumerate(z):
                fp = Utils_z.refocus_field_z(field0, zi, padding = 128)
-               r = image_utils.downsample2d(fp.real, downsample_size) # Downsample somwehat
+               r = image_utils.downsample2d(fp.imag, downsample_size) # Downsample somwehat
 
                 #Save frame via annotation, else plt.imsave
                if CONFIG.plot_settings.annotate:

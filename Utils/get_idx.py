@@ -6,7 +6,7 @@ Created on Thu Oct  7 18:26:19 2021
 """
 import numpy as np
 
-def get(idx, start_frame, vid_shift, frame_disp_vid, max_frames, method = 'old', every = 9, index = []):
+def get(idx, start_frame, vid_shift, frame_disp_vid, max_frames, method = 'old', every = 5, index = []):
     "Function for retrieving which indeces to extract, contains a few methods."
     
     if method == 'old':
