@@ -97,7 +97,7 @@ def main():
            z = np.linspace(l, u, CONFIG.z_propagation_settings.z_steps)
            
            if np.abs(CONFIG.z_propagation_settings.z_prop) > 0:
-               field0 = Utils_z.refocus_field_z(field0, -CONFIG.z_propagation_settings.z_prop, padding = 128)
+               field0 = Utils_z.refocus_field_z(field0, -CONFIG.z_propagation_settings.z_prop, padding = 256)
            
            for i, zi in enumerate(z):
                fp = Utils_z.refocus_field_z(field0, zi, padding = 128)

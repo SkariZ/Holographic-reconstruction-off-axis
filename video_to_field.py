@@ -103,7 +103,7 @@ def imgtofield(img,
 
     #Focus the field
     if np.abs(z_prop) > 0:  
-        E_field_corr2 = Utils_z.refocus_field_z(E_field_corr2, z_prop, padding = 64)
+        E_field_corr2 = Utils_z.refocus_field_z(E_field_corr2, z_prop, padding = 256)
         
     return E_field_corr2
 

@@ -27,10 +27,10 @@ def get(idx, start_frame, vid_shift, frame_disp_vid, max_frames, method = 'old',
           
     # All frames.            
     elif method == 'all':
-        if max_frames < len(idx):
+        if max_frames < len(idx) and max_frames > 1:
             input_mp = idx[start_frame:max_frames+start_frame]
         else:
-            input_mp = idx
+            input_mp = idx[start_frame:]
     
     elif method == 'pre2':
         r1 = np.arange(start_frame + 3, len(idx), vid_shift)

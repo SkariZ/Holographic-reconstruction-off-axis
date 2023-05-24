@@ -17,13 +17,13 @@ class main_settings:
     """
     
     #Filename shall be an .avi file with the full path.
-    filename_folder : str = 'D:/iSCAT_cells/Cell_wBodioy_45min_3fps_wOpti_Every1_5/'
+    filename_folder : str = 'D:/iSCAT_cells/HunCells_33procOpti_noMod_12fps_Every1_1/'
 
     #Name project where the results shall be stored.
-    project_name : str = 'Cell_wBodioy_45min_3fps_wOpti_Every1_5'
+    project_name : str = 'HunCells_33procOpti_noMod_12fps_Every1_1'
 
     #Root folder where the results shall be stored.
-    root_folder : str = 'Results/'
+    root_folder : str = 'D:/Bodioy_cell_analysis/'
 
     #The filename that ends with holography. The file we want
     filename_holo : str = [f for f in glob.glob(filename_folder + "/*.avi") if f.endswith('holo.avi')][0] if [f for f in glob.glob(filename_folder + "/*.avi") if 
@@ -84,10 +84,10 @@ class video_settings:
     """
     
     #size height
-    height : int = 1450
+    height : int = 1400
 
     #size width
-    width : int = 1930
+    width : int = 1800
     
     #Which corner to crop in image [[],[]], upper left 1, upper right 2, lower left 3, lower right 4.
     corner : int = 2
@@ -108,7 +108,7 @@ class index_settings:
     """
 
     #Cap the maximum number of frames.
-    max_frames : int = 500
+    max_frames : int = 1
 
     #Which frame to start processing from
     start_frame : int = 0
@@ -117,10 +117,10 @@ class index_settings:
     frame_disp_vid : int = 4
 
     #Which indexes to take out beforehand. 'old', 'all' or 'pre2',...'pre5', prepost, 'every' and 'own_idx' . 'all' is 0,1,2,3..... The others are a bit special.
-    index_method : str = 'own_idx'
+    index_method : str = 'every'
 
     #Input manually the frames you want to extract. Only works if index_method = 'own_index'
-    index : list[int] = field(default_factory=lambda: [ 10,  141,  272,  404,  535,  666,  798,  929, 1060, 1192, 1323, 1455])
+    index : list[int] = field(default_factory=lambda:[])
 
 @dataclass
 class plot_settings:
@@ -141,7 +141,7 @@ class plot_settings:
     DPI : int = 225
 
     #Downsample
-    downsamplesize : int = 2
+    downsamplesize : int = 3
 
     #Annotate plots
     annotate : bool = True
@@ -173,10 +173,10 @@ class z_propagation_settings(index_settings, video_settings):
 
     ###Z-search propagation distance.
     #low
-    z_search_low : int = -20
+    z_search_low : int = -10
 
     #high
-    z_search_high : int = 20
+    z_search_high : int = 10
 
     #Step size
     z_steps : int = 71
