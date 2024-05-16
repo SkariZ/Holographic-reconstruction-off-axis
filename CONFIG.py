@@ -10,29 +10,31 @@ Change the settings in each class after own preferences.
 
 """
 
-@dataclass
+
+
 class main_settings:
     """
-    DataClass for storing main settings, ie. folder name and project_name.
+    Class for storing main settings, ie. folder name and project_name.
     """
     
-    #Filename shall be an .avi file with the full path.
-    filename_folder : str = 'D:/iSCAT_cells/HunCells_33procOpti_noMod_12fps_Every1_1/'
+    def __init__(self, filename_folder, project_name, root_folder):
+        """
+        Initialize the class.
+        """
+        self.filename_folder = filename_folder
+        self.project_name = project_name
+        self.root_folder = root_folder    
 
-    #Name project where the results shall be stored.
-    project_name : str = 'HunCells_33procOpti_noMod_12fps_Every1_1'
 
-    #Root folder where the results shall be stored.
-    root_folder : str = 'D:/Bodioy_cell_analysis/'
+        #The filename that ends with holography. The file we want
+        try:
+            self.filename_holo = [f for f in glob.glob(self.filename_folder + "/*.avi") if f.endswith('holo.avi')][0]
+        except:
+            self.filename_holo = False
 
-    #The filename that ends with holography. The file we want
-    filename_holo : str = [f for f in glob.glob(filename_folder + "/*.avi") if f.endswith('holo.avi')][0] if [f for f in glob.glob(filename_folder + "/*.avi") if 
-    f.endswith('holo.avi')][0] else FileNotFoundError(".avi file not found in folder // or .avi file does note end with holo.avi. Change filename...")
-
-    #Paths that will be constructed in rooft_folder/project_name/
-    standard_paths : list  = field(default_factory = lambda:['field', 'plots'])
-
-    standard_paths_plot : list = field(default_factory = lambda:['frames','prop', 'sub'])
+        #Paths that will be constructed in rooft_folder/project_name/
+        self.standard_paths = ['field', 'plots']
+        self.standard_paths_plot = ['frames','prop', 'sub']
 
     #Have them as usual functions as of now. Class will always be initialized the init values.
     def check_if_file_exists(self):
@@ -40,7 +42,9 @@ class main_settings:
         Check if the file exists.
         """
         if not os.path.isfile(self.filename_holo):
-            raise FileNotFoundError(f"File {self.filename_holo} does not exist.")
+            return False
+        else:
+            return True
 
     def create_result_folder(self):
         """
@@ -63,7 +67,6 @@ class main_settings:
             if not os.path.isdir(f'{self.root_folder}/{self.project_name}/plots/{path}'):
                 os.mkdir(f'{self.root_folder}/{self.project_name}/plots/{path}')
 
-
     def print_main_settings(self):
         print(f"Project name --- {self.project_name}")
 
@@ -75,7 +78,6 @@ class main_settings:
 class multiprocessing:
 
     M : bool = True
-
 
 @dataclass
 class video_settings:
@@ -108,16 +110,16 @@ class index_settings:
     """
 
     #Cap the maximum number of frames.
-    max_frames : int = 1
+    max_frames : int = 400
 
     #Which frame to start processing from
     start_frame : int = 0
 
     #How many frames before and after the vid shift that are looked at. (Only affects index_method = old and prepost)
-    frame_disp_vid : int = 4
+    frame_disp_vid : int = 10
 
     #Which indexes to take out beforehand. 'old', 'all' or 'pre2',...'pre5', prepost, 'every' and 'own_idx' . 'all' is 0,1,2,3..... The others are a bit special.
-    index_method : str = 'every'
+    index_method : str = 'all'
 
     #Input manually the frames you want to extract. Only works if index_method = 'own_index'
     index : list[int] = field(default_factory=lambda:[])
@@ -141,7 +143,7 @@ class plot_settings:
     DPI : int = 225
 
     #Downsample
-    downsamplesize : int = 3
+    downsamplesize : int = 4
 
     #Annotate plots
     annotate : bool = True
@@ -169,7 +171,7 @@ class z_propagation_settings(index_settings, video_settings):
 
     #Which frames to subtract for when finding focus.
     find_focus_first_frame_idx_start : int = index_settings.start_frame
-    find_focus_first_frame_idx_stop : int = video_settings.vid_shift + index_settings.start_frame + index_settings.frame_disp_vid
+    find_focus_first_frame_idx_stop : int = index_settings.start_frame#video_settings.vid_shift + index_settings.start_frame + index_settings.frame_disp_vid
 
     ###Z-search propagation distance.
     #low
@@ -179,7 +181,7 @@ class z_propagation_settings(index_settings, video_settings):
     z_search_high : int = 10
 
     #Step size
-    z_steps : int = 71
+    z_steps : int = 51
 
 
 @dataclass
@@ -195,13 +197,16 @@ class reconstruction_settings(video_settings, index_settings):
     lowpass_fit : bool = False
 
     #For lowpass filtering when doing background estimation and subraction. First one is the fourier selection filter, the other are set costumized.
-    radius_lowpass : list[int] = field(default_factory=lambda: [225, 10, 10, 10]) #175, 5, 5, 5
+    radius_lowpass : list[int] = field(default_factory=lambda: [225, 25, 25, 25]) #175, 5, 5, 5
     
     #Shift fourier peak slightly. Manually, if the fourier center is slightly off..
     correct_fourier_peak : list[int] = field(default_factory=lambda: [0, 0]) #Positive row is upward shift, positive "col" is leftward shift and vice versa
 
-    #Additionional phase corrections. A loop. Only done if lowpass_fit = True
-    add_phase_corrections : int = 3
+    #Additionional phase corrections. A loop.
+    add_phase_corrections : int = 5
+
+    #Do phase background fit as long as the phase background is not changing more than this value.
+    correct_phase_background_tol : float = 1e-6
 
     #Do phase unwrapping. Do not use.
     unwrap : bool = False
@@ -213,13 +218,23 @@ class reconstruction_settings(video_settings, index_settings):
     cropping : int = 0
 
     #Normalize field
-    normalize_field : bool = False
+    normalize_field : bool = True
 
     #Additional mask, either "sinc" or "jinc" , or else then nothing.
     mask_f : str = ''
 
     #Mask_out - Mask out regions in the fftimage that can be a source of noise.
     mask_out : bool = True
+
+    #Sign correction. If the sign is wrong, then the field will be flipped. Force positive real part.
+    sign_correction : bool = False
+
+    #Conjugate check
+    conjugate_check : bool = True
+
+    #Do a background segmentation, and normalize such that the phase is 0 in the background.
+    background_segmentation : bool = True
+
 
 @dataclass
 class save_settings(reconstruction_settings, video_settings):

@@ -7,12 +7,15 @@ Created on Wed Mar 03 09:14:39 2022
 
 """
 
+import cupy as cp
+import cupyx.scipy.ndimage as ndimage
+
 import numpy as np
+
 from skimage import morphology
 from skimage.restoration import unwrap_phase
 #import cv2
 import scipy
-from scipy import ndimage
 
 def correct_phase_4order (phase_img, G, polynomial):
     """ 
@@ -32,8 +35,8 @@ def correct_phase_4order (phase_img, G, polynomial):
     An0 = An0 - An0[0, 0] #Set phase to "0"
 
     # Derivative the phase to handle the modulus
-    dx = -np.pi + np.mod(np.pi + (np.diff(An0, axis = 0)), 2*np.pi)
-    dy = -np.pi + np.transpose(np.mod(np.pi + np.transpose((np.diff(An0))), 2*np.pi))
+    dx = -cp.pi + cp.mod(cp.pi + (cp.diff(An0, axis = 0)), 2*cp.pi)
+    dy = -cp.pi + cp.transpose(cp.mod(cp.pi + cp.transpose((cp.diff(An0))), 2*cp.pi))
     
     #dx1, dy1 the derivatives
     dx1 = 1/2 * ((dx[:, 1:] + dx[:, :-1])).flatten(order='F')
@@ -41,21 +44,23 @@ def correct_phase_4order (phase_img, G, polynomial):
 
     #(derivate w.r.t to X and Y respectively.) Each factor have a constant b_i to be fitted later on.
     G_end = G.shape[0]
-    uneven_range = np.arange(1, G_end+1, 2)
-    even_range = np.arange(0, G_end, 2)
+    uneven_range = cp.arange(1, G_end+1, 2)
+    even_range = cp.arange(0, G_end, 2)
     
-    dt = np.zeros(2 * (xr-1) * (yr-1))
+    dt = cp.zeros(2 * (xr-1) * (yr-1))
     dt[even_range] = dx1
     dt[uneven_range] = dy1          
     
-    # Here the coefficients to the polonomial are calculated. Note that np.linalg.lstsq(b,B)[0] is equivivalent to \ in MATLAB              
-    R = np.transpose(np.linalg.cholesky(np.matmul(np.transpose(G),G)))
+    # Here the coefficients to the polonomial are calculated. Note that cp.linalg.lstsq(b,B)[0] is equivivalent to \ in MATLAB              
+    R = cp.transpose(cp.linalg.cholesky(cp.matmul(cp.transpose(G),G)))
     
     # Equivivalent to R\(R'\(G'*dt))
+    R, G, dt = R.get(), G.get(), dt.get()
     b = np.linalg.lstsq(R, 
-                        np.linalg.lstsq(np.transpose(R),
+                        np.linalg.lstsq(cp.transpose(R),
                                         np.matmul(np.transpose(G),dt), rcond=None)[0], rcond=None)[0]
-    
+    b = cp.asarray(b)
+
     # Phase background is defined by the 4th order polynomial with the fitted parameters.
     phase_background = 0
     for i, factor in enumerate(polynomial):
@@ -63,7 +68,7 @@ def correct_phase_4order (phase_img, G, polynomial):
     
     return phase_background
 
-def phaseunwrap_skimage(field, norm_phase_after = True):
+def phaseunwrap_skimage(field, norm_phase_after = False):
     """
     Unwrap the phase of the field using skimage.
 
@@ -74,21 +79,22 @@ def phaseunwrap_skimage(field, norm_phase_after = True):
     """
 
     #Check if the field is complex
-    if np.iscomplexobj(field):
-        phase = np.angle(field)
+    if cp.iscomplexobj(field):
+        phase = cp.angle(field)
     else:
         raise ValueError("The field is not complex")
 
     #Unwrap the phase
-    phase_unwrapped = unwrap_phase(phase)
+    phase_unwrapped = unwrap_phase(phase.get())
+    phase_unwrapped = cp.asarray(phase_unwrapped)
 
     #Normalize the phase to be between -pi and pi after unwrapping
     if norm_phase_after:
-        phase_unwrapped = phase_unwrapped - np.min(phase_unwrapped)
-        phase_unwrapped = phase_unwrapped / np.max(phase_unwrapped)
-        phase_unwrapped = phase_unwrapped * 2*np.pi - np.pi
+        phase_unwrapped = phase_unwrapped - cp.min(phase_unwrapped)
+        phase_unwrapped = phase_unwrapped / cp.max(phase_unwrapped)
+        phase_unwrapped = phase_unwrapped * 2*cp.pi - cp.pi
 
-    return np.abs(field)*np.exp(1j * phase_unwrapped)
+    return cp.abs(field)*cp.exp(1j * phase_unwrapped)
 
 
 def phase_unwrap_pipeline(field, X_c, Y_c, polynomial, KX2_add_KY2, phi_thres = 0.7):
@@ -107,7 +113,7 @@ def phase_unwrap_pipeline(field, X_c, Y_c, polynomial, KX2_add_KY2, phi_thres = 
     """
 
     #Returns the unwraped phase of the E_field
-    phase_img_unwarp = phaseunwrap(np.angle(field), KX2_add_KY2)
+    phase_img_unwarp = phaseunwrap(cp.angle(field), KX2_add_KY2)
 
     #Phase bakground fit
     phase_background2 = correct_phase_4order_removal(phase_img_unwarp, X_c, Y_c, polynomial, phi_thres=phi_thres)
@@ -115,7 +121,7 @@ def phase_unwrap_pipeline(field, X_c, Y_c, polynomial, KX2_add_KY2, phi_thres = 
     #Retrieve the phase image
     phase_image_finished = phase_img_unwarp - phase_background2
 
-    return np.abs(field)*np.exp(1j * phase_image_finished)
+    return cp.abs(field)*cp.exp(1j * phase_image_finished)
 
 
 def phaseunwrap(phase_image, KX2_add_KY2):
@@ -130,14 +136,14 @@ def phaseunwrap(phase_image, KX2_add_KY2):
     """
     punw = phase_image.copy()
 
-    php = idct2((dct2(np.cos(punw) * idct2((KX2_add_KY2) * dct2(np.sin(punw)))))* 1/(KX2_add_KY2))
-    phm = idct2((dct2(np.sin(punw) * idct2((KX2_add_KY2) * dct2(np.cos(punw)))))* 1/(KX2_add_KY2))
+    php = idct2((dct2(cp.cos(punw) * idct2((KX2_add_KY2) * dct2(cp.sin(punw)))))* 1/(KX2_add_KY2))
+    phm = idct2((dct2(cp.sin(punw) * idct2((KX2_add_KY2) * dct2(cp.cos(punw)))))* 1/(KX2_add_KY2))
     
     phprime = php-phm
     phprime = (phprime - phprime[9, 9]) + phase_image[9, 9] # Unsure why coordinates 9,9 are used.
     
     for _ in range(20):
-        punw = punw + 2*np.pi * np.round((phprime-punw) / (2*np.pi))
+        punw = punw + 2*cp.pi * cp.round((phprime-punw) / (2*cp.pi))
         
     return punw
 
@@ -157,12 +163,11 @@ def correct_phase_4order_removal(phase_img, X, Y, polynomial, phi_thres = 0.7):
     image = phase_img.copy()
 
     #Construct a simple binary image with phi_treshold. (Inverted)
-    thresholded_image_inv = np.where(image > (phi_thres + np.median(image)), 1, 0)
-
-
+    thresholded_image_inv = cp.where(image > (phi_thres + cp.median(image)), 1, 0)
     disk = morphology.disk(radius=6) #Some tuning of the radius  might be necessary.
-    thresholded_image2 = morphology.dilation(thresholded_image_inv, footprint=disk)
-    thresholded_image2_bol = np.where(thresholded_image2==0 , True, False)
+    thresholded_image2 = morphology.dilation(thresholded_image_inv.get(), footprint=disk)
+    thresholded_image2 = cp.asarray(thresholded_image2)
+    thresholded_image2_bol = cp.where(thresholded_image2==0 , True, False)
     
     #Extract the x and y for the thresholded data.
     y1 = Y[thresholded_image2_bol]
@@ -170,7 +175,7 @@ def correct_phase_4order_removal(phase_img, X, Y, polynomial, phi_thres = 0.7):
     
     phi_selected = image[thresholded_image2_bol]
     
-    G = np.zeros((len(phi_selected), 15))
+    G = cp.zeros((len(phi_selected), 15))
     
     G[:, 14] = 1
     G[:, 0] = x1**2
@@ -192,13 +197,13 @@ def correct_phase_4order_removal(phase_img, X, Y, polynomial, phi_thres = 0.7):
     
     dt = phi_selected
     
-    # Here the coefficients to the polonomial are calculated. Note that np.linalg.lstsq(b,B)[0] is equivivalent to \ in MATLAB              
-    R = np.transpose(np.linalg.cholesky(np.matmul(np.transpose(G),G)))
+    # Here the coefficients to the polonomial are calculated. Note that cp.linalg.lstsq(b,B)[0] is equivivalent to \ in MATLAB              
+    R = cp.transpose(cp.linalg.cholesky(cp.matmul(cp.transpose(G),G)))
     
     # Equivivalent to R\(R'\(G'*dt))
-    b = np.linalg.lstsq(R, 
-                        np.linalg.lstsq(np.transpose(R),
-                                        np.matmul(np.transpose(G), dt), rcond=None)[0], rcond=None)[0]
+    b = cp.linalg.lstsq(R, 
+                        cp.linalg.lstsq(cp.transpose(R),
+                                        cp.matmul(cp.transpose(G), dt), rcond=None)[0], rcond=None)[0]
     
     #Here we calculate the phase background with the fitted parameters b.
     # Phase background is defined by the 4th order polynomial with the fitted parameters.
@@ -228,7 +233,7 @@ def correct_phase_4order_with_background(phase, background, X, Y, polynomial):
     
     phi_selected = phase[background]
     
-    G = np.zeros((len(phi_selected), 15))
+    G = cp.zeros((len(phi_selected), 15))
     
     G[:, 14] = 1
     G[:, 0] = x1**2
@@ -250,13 +255,13 @@ def correct_phase_4order_with_background(phase, background, X, Y, polynomial):
     
     dt = phi_selected
     
-    # Here the coefficients to the polonomial are calculated. Note that np.linalg.lstsq(b,B)[0] is equivivalent to \ in MATLAB              
-    R = np.transpose(np.linalg.cholesky(np.matmul(np.transpose(G), G)))
+    # Here the coefficients to the polonomial are calculated. Note that cp.linalg.lstsq(b,B)[0] is equivivalent to \ in MATLAB              
+    R = cp.transpose(cp.linalg.cholesky(cp.matmul(cp.transpose(G), G)))
     
     # Equivivalent to R\(R'\(G'*dt))
-    b = np.linalg.lstsq(R, 
-                        np.linalg.lstsq(np.transpose(R),
-                                        np.matmul(np.transpose(G), dt), rcond=None)[0], rcond=None)[0]
+    b = cp.linalg.lstsq(R, 
+                        cp.linalg.lstsq(cp.transpose(R),
+                                        cp.matmul(cp.transpose(G), dt), rcond=None)[0], rcond=None)[0]
     
     
     # Phase background is defined by the 4th order polynomial with the fitted parameters.
@@ -279,9 +284,9 @@ def get_4th_polynomial(input_shape):
     """
     yrc, xrc = input_shape
 
-    xc = np.arange(-(xrc/2-1/2), (xrc/2 + 1/2), 1)
-    yc = np.arange(-(yrc/2-1/2), (yrc/2 + 1/2), 1)
-    Y_c, X_c = np.meshgrid(xc, yc)
+    xc = cp.arange(-(xrc/2-1/2), (xrc/2 + 1/2), 1)
+    yc = cp.arange(-(yrc/2-1/2), (yrc/2 + 1/2), 1)
+    Y_c, X_c = cp.meshgrid(xc, yc)
 
     #4th order polynomial.
     polynomial = [
@@ -313,19 +318,19 @@ def get_G_matrix (input_shape):
 
     yrc, xrc = input_shape
 
-    xc = np.arange(-(xrc/2-1/2), (xrc/2 + 1/2), 1)
-    yc = np.arange(-(yrc/2-1/2), (yrc/2 + 1/2), 1)
-    Y_c, X_c = np.meshgrid(xc, yc)
+    xc = cp.arange(-(xrc/2-1/2), (xrc/2 + 1/2), 1)
+    yc = cp.arange(-(yrc/2-1/2), (yrc/2 + 1/2), 1)
+    Y_c, X_c = cp.meshgrid(xc, yc)
 
     #Vectors of equal size. x1 and y1 spatial coordinates
     x1 = 1/2 * ((X_c[1:, 1:] + X_c[:-1, :-1])).flatten(order='F')
     y1 = 1/2 * ((Y_c[1:, 1:] + Y_c[:-1, :-1])).flatten(order='F')
     
-    G = np.zeros((2 * (xrc-1) * (yrc-1) , 14)) # Matrix to store 4-order polynominal. (Not including constant)
+    G = cp.zeros((2 * (xrc-1) * (yrc-1) , 14)) # Matrix to store 4-order polynominal. (Not including constant)
     G_end = G.shape[0]
     #(derivate w.r.t to X and Y respectively.)
-    uneven_range = np.arange(1, G_end+1, 2)
-    even_range = np.arange(0, G_end, 2)
+    uneven_range = cp.arange(1, G_end+1, 2)
+    even_range = cp.arange(0, G_end, 2)
     
     G[uneven_range, 4] = 1
     G[even_range, 3] = 1
@@ -391,17 +396,17 @@ def pre_calculations(
     
     yr, xr  = first_frame.shape
     
-    x = np.arange(-(xr/2-1/2), (xr/2 + 1/2), 1)
-    y = np.arange(-(yr/2-1/2), (yr/2 + 1/2), 1)
-    X, Y = np.meshgrid(x, y)
-    position_matrix = np.sqrt(X**2 + Y**2) #"circle", values are smaller if closer to the center and vice verca.
+    x = cp.arange(-(xr/2-1/2), (xr/2 + 1/2), 1)
+    y = cp.arange(-(yr/2-1/2), (yr/2 + 1/2), 1)
+    X, Y = cp.meshgrid(x, y)
+    position_matrix = cp.sqrt(X**2 + Y**2) #"circle", values are smaller if closer to the center and vice verca.
     
     # Cropping the field to avoid edge effects.
     xrc, yrc = xr - cropping*2, yr - cropping*2
     
-    xc = np.arange(-(xrc/2-1/2), (xrc/2 + 1/2), 1)
-    yc = np.arange(-(yrc/2-1/2), (yrc/2 + 1/2), 1)
-    Y_c, X_c = np.meshgrid(xc, yc)
+    xc = cp.arange(-(xrc/2-1/2), (xrc/2 + 1/2), 1)
+    yc = cp.arange(-(yrc/2-1/2), (yrc/2 + 1/2), 1)
+    Y_c, X_c = cp.meshgrid(xc, yc)
     
     #4th order polynomial.
     polynomial = [
@@ -425,11 +430,11 @@ def pre_calculations(
     x1 = 1/2 * ((X_c[1:, 1:] + X_c[:-1, :-1])).flatten(order='F')
     y1 = 1/2 * ((Y_c[1:, 1:] + Y_c[:-1, :-1])).flatten(order='F')
     
-    G = np.zeros((2 * (xrc-1) * (yrc-1) , 14)) # Matrix to store 4-order polynominal. (Not including constant)
+    G = cp.zeros((2 * (xrc-1) * (yrc-1) , 14)) # Matrix to store 4-order polynominal. (Not including constant)
     G_end = G.shape[0]
     #(derivate w.r.t to X and Y respectively.)
-    uneven_range = np.arange(1, G_end+1, 2)
-    even_range = np.arange(0, G_end, 2)
+    uneven_range = cp.arange(1, G_end+1, 2)
+    even_range = cp.arange(0, G_end, 2)
     
     G[uneven_range, 4] = 1
     G[even_range, 3] = 1
@@ -455,31 +460,31 @@ def pre_calculations(
     G[uneven_range, 13] = 4*y1**3
     
     #### Constants in phaseunwrap function.
-    KY_, KX_ = np.meshgrid(np.arange(1, xrc+1,1), np.arange(1, yrc+1, 1))
+    KY_, KX_ = cp.meshgrid(cp.arange(1, xrc+1,1), cp.arange(1, yrc+1, 1))
     KX2_add_KY2 = KX_**2+KY_**2
     
     #### kx and ky is the wave vector that defines the direction of propagation. Used to calculate the fourier shift.
-    kx = np.linspace(-np.pi, np.pi, xr) 
-    ky = np.linspace(-np.pi, np.pi, yr)
-    KX, KY = np.meshgrid(kx, ky)
+    kx = cp.linspace(-cp.pi, cp.pi, xr) 
+    ky = cp.linspace(-cp.pi, cp.pi, yr)
+    KX, KY = cp.meshgrid(kx, ky)
     
     ##### The peak coordinates in the fourier space are the same for all frames (should be very similar atleast.)
-    fftImage = np.fft.fft2(first_frame) #Compute the 2-dimensional discrete Fourier Transform
-    fftImage = np.fft.fftshift(fftImage) #Shift the zero-frequency component to the center of the spectrum.
+    fftImage = cp.fft.fft2(first_frame) #Compute the 2-dimensional discrete Fourier Transform
+    fftImage = cp.fft.fftshift(fftImage) #Shift the zero-frequency component to the center of the spectrum.
     
     yr, xr = fftImage.shape 
-    if not isinstance(filter_radius, (int, np.uint8)):
-        filter_radius = int(np.min([xr, yr]) / 7)
+    if not isinstance(filter_radius, (int, cp.uint8)):
+        filter_radius = int(cp.min(cp.asarray([xr, yr])) / 7)
 
-    fftImage = np.where(position_matrix < filter_radius, 0, fftImage) #Set values within filter_radius to 0
-    fftImage = np.where(X < -5, 0, fftImage) #Set "left" values to 0 
-    fftImage = np.where(np.abs(Y) < 5, 0, fftImage) #Set "fourier boundary" to 0. 
+    fftImage = cp.where(position_matrix < filter_radius, 0, fftImage) #Set values within filter_radius to 0
+    fftImage = cp.where(X < -5, 0, fftImage) #Set "left" values to 0 
+    fftImage = cp.where(cp.abs(Y) < 5, 0, fftImage) #Set "fourier boundary" to 0. 
 
     #Find max with some minor gaussian convolutions
-    imag_c = scipy.ndimage.gaussian_filter(fftImage.imag, sigma = 3)
-    real_c = scipy.ndimage.gaussian_filter(fftImage.real, sigma = 3)
-    idx_max_real = np.unravel_index(np.argmax(real_c, axis=None), fftImage.shape)
-    idx_max_imag = np.unravel_index(np.argmax(imag_c, axis=None), fftImage.shape)
+    imag_c = ndimage.gaussian_filter(fftImage.imag, sigma = 3)
+    real_c = ndimage.gaussian_filter(fftImage.real, sigma = 3)
+    idx_max_real = cp.unravel_index(cp.argmax(real_c, axis=None), fftImage.shape)
+    idx_max_imag = cp.unravel_index(cp.argmax(imag_c, axis=None), fftImage.shape)
     
     idx_max = (int((idx_max_real[0] + idx_max_imag[0])/2), int((idx_max_real[1] + idx_max_imag[1])/2))   
     idx_max = (idx_max[0]+correct_fourier_peak[0], idx_max[1]+correct_fourier_peak[1])
@@ -487,7 +492,7 @@ def pre_calculations(
 
     x_pos = X[idx_max] #In X
     y_pos = Y[idx_max] #In Y
-    dist_peak = np.sqrt(x_pos**2 + y_pos**2)
+    dist_peak = cp.sqrt(x_pos**2 + y_pos**2)
 
     kx_pos = KX[idx_max]
     ky_pos = KY[idx_max]
@@ -507,14 +512,14 @@ def pre_calculations(
         rad = mask_radie[0]
     #We estimate the size of the fourier filter. For first filtering step only.
     else:
-        rad = int(round(np.max([xr, yr]) / 6))
+        rad = int(round(cp.max(cp.asarray([xr, yr])) / 6))
         if case == 'ellipse': mask_list.append(create_ellipse_mask(yr, xr, percent = rad / yr))
         elif case == 'circular': mask_list.append(create_circular_mask(yr, xr, radius = rad))
 
     #FFT image shifted to center and masked out
-    fftImage2 = np.fft.fftshift(
-            np.fft.fft2(
-            (first_frame - np.mean(first_frame)) * np.exp(1j*(kx_add_ky)))
+    fftImage2 = cp.fft.fftshift(
+            cp.fft.fft2(
+            (first_frame) * cp.exp(1j*(kx_add_ky)))
             ) * mask_list[0]
 
     if mask_out:
@@ -537,9 +542,9 @@ def pre_calculations(
             phase_img = phase_frequencefilter(fftImage2, mask = mask_list[1] , is_field = False, crop = cropping)
         else:
             if cropping > 0: 
-                phase_img = np.angle(np.fft.ifft2(np.fft.fftshift(fftImage2))[cropping:-cropping, cropping:-cropping])
+                phase_img = cp.angle(cp.fft.ifft2(cp.fft.fftshift(fftImage2))[cropping:-cropping, cropping:-cropping])
             else: 
-                phase_img = np.angle(np.fft.ifft2(np.fft.fftshift(fftImage2)))
+                phase_img = cp.angle(cp.fft.ifft2(cp.fft.fftshift(fftImage2)))
         # Get the phase background from phase image.
         phase_background = correct_phase_4order(phase_img, G, polynomial)
     else:
@@ -555,58 +560,58 @@ def get_shifted_fft(frame, filter_radius=200, correct_fourier_peak = [0, 0]):
 
     yr, xr  = frame.shape
     
-    x = np.arange(-(xr/2-1/2), (xr/2 + 1/2), 1)
-    y = np.arange(-(yr/2-1/2), (yr/2 + 1/2), 1)
-    X, Y = np.meshgrid(x, y)
+    x = cp.arange(-(xr/2-1/2), (xr/2 + 1/2), 1)
+    y = cp.arange(-(yr/2-1/2), (yr/2 + 1/2), 1)
+    X, Y = cp.meshgrid(x, y)
 
     #### kx and ky is the wave vector that defines the direction of propagation. Used to calculate the fourier shift.
-    kx = np.linspace(-np.pi, np.pi, xr) 
-    ky = np.linspace(-np.pi, np.pi, yr)
-    KX, KY = np.meshgrid(kx, ky)
+    kx = cp.linspace(-cp.pi, cp.pi, xr) 
+    ky = cp.linspace(-cp.pi, cp.pi, yr)
+    KX, KY = cp.meshgrid(kx, ky)
 
-    position_matrix = np.sqrt(X**2 + Y**2) #"circle", values are smaller if closer to the center and vice verca.
+    position_matrix = cp.sqrt(X**2 + Y**2) #"circle", values are smaller if closer to the center and vice verca.
 
-    fftImage = np.fft.fft2(frame) #Compute the 2-dimensional discrete Fourier Transform
-    fftImage = np.fft.fftshift(fftImage) #Shift the zero-frequency component to the center of the spectrum.
+    fftImage = cp.fft.fft2(frame) #Compute the 2-dimensional discrete Fourier Transform
+    fftImage = cp.fft.fftshift(fftImage) #Shift the zero-frequency component to the center of the spectrum.
 
     #If not filter radius inputted. Estimate it somewhat. 
     if not isinstance(filter_radius, int):
-        filter_radius = int(np.min([xr, yr]) / 6) 
+        filter_radius = int(cp.min(cp.asarray([xr, yr])) / 6) 
 
-    fftImage = np.where(position_matrix < filter_radius, 0, fftImage) #Set values within filter_radius to 0
-    fftImage = np.where(X < -5, 0, fftImage) #Set "left" values to 0 
-    fftImage = np.where(np.abs(Y) < 5, 0, fftImage) #Set "fourier boundary" to 0. 
+    fftImage = cp.where(position_matrix < filter_radius, 0, fftImage) #Set values within filter_radius to 0
+    fftImage = cp.where(X < -5, 0, fftImage) #Set "left" values to 0 
+    fftImage = cp.where(cp.abs(Y) < 5, 0, fftImage) #Set "fourier boundary" to 0. 
     
     #Find max with some minor gaussian convolutions
-    imag_c = scipy.ndimage.gaussian_filter(fftImage.imag, sigma = 3)
-    real_c = scipy.ndimage.gaussian_filter(fftImage.real, sigma = 3)
-    idx_max_real = np.unravel_index(np.argmax(real_c, axis=None), fftImage.shape)
-    idx_max_imag = np.unravel_index(np.argmax(imag_c, axis=None), fftImage.shape)
+    imag_c = ndimage.gaussian_filter(fftImage.imag, sigma = 3)
+    real_c = ndimage.gaussian_filter(fftImage.real, sigma = 3)
+    idx_max_real = cp.unravel_index(cp.argmax(real_c, axis=None), fftImage.shape)
+    idx_max_imag = cp.unravel_index(cp.argmax(imag_c, axis=None), fftImage.shape)
     
     idx_max = (int((idx_max_real[0] + idx_max_imag[0])/2), int((idx_max_real[1] + idx_max_imag[1])/2))   
     
     idx_max = (idx_max[0]+correct_fourier_peak[0], idx_max[1]+correct_fourier_peak[1])
     #idx_max = (idx_max[0]+5, idx_max[1]-25)
-    #gauss_fft = scipy.ndimage.gaussian_filter(np.log(np.abs(fftImage)), sigma = 5)
-    #idx_max = np.unravel_index(np.argmax(gauss_fft, axis=None), fftImage.shape)
+    #gauss_fft = scipy.ndimage.gaussian_filter(cp.log(cp.abs(fftImage)), sigma = 5)
+    #idx_max = cp.unravel_index(cp.argmax(gauss_fft, axis=None), fftImage.shape)
 
     #x_pos = X[idx_max] #In X
     #y_pos = Y[idx_max] #In Y
-    #dist_peak = np.sqrt(x_pos**2 + y_pos**2)
+    #dist_peak = cp.sqrt(x_pos**2 + y_pos**2)
 
     kx_pos = KX[idx_max]
     ky_pos = KY[idx_max]
     kx_add_ky = kx_pos*X+ky_pos*Y
 
     ###Center on one of the off-center peaks
-    img = np.array(frame, dtype = np.float32) 
-    img = img - np.mean(img) #img = img - np.mean(img)
+    img = cp.array(frame, dtype = cp.float32) 
+    img = img - cp.mean(img) #img = img - cp.mean(img)
     
     #Compute the 2-dimensional discrete Fourier Transform with offset image.
-    fftImage = np.fft.fft2(img * np.exp(1j*(kx_add_ky)))
+    fftImage = cp.fft.fft2(img * cp.exp(1j*(kx_add_ky)))
 
     #shifted fourier image centered on peak values in x and y. 
-    fftImage = np.fft.fftshift(fftImage)
+    fftImage = cp.fft.fftshift(fftImage)
 
     return fftImage
 
@@ -646,28 +651,28 @@ def imgtofield_simple(img,
     """
 
     #Make image float.
-    img = np.array(img, dtype = np.float32) 
+    img = cp.array(img, dtype = cp.float32) 
 
     #Compute the 2-dimensional fourier transform with offset kx_add_ky.
-    fftImage = np.fft.fft2(img * np.exp(1j*(kx_add_ky)))
+    fftImage = cp.fft.fft2(img * cp.exp(1j*(kx_add_ky)))
 
     #shifted fourier image centered on peak values in x and y. 
-    fftImage = np.fft.fftshift(fftImage)
+    fftImage = cp.fft.fftshift(fftImage)
     
     #Selection fourier filter.
     selection_filter = position_matrix > dist_peak / 3 
 
     #Sets values outside the defined circle to zero. Ie. take out the information for this peak.
-    fftImage2 = np.where(selection_filter, 0, fftImage)
+    fftImage2 = cp.where(selection_filter, 0, fftImage)
 
     #Scale fftimage with sinc function
     if mask_f_case == 'sinc':
-        fftImage2 = fftImage2 * np.sinc(selection_filter)
+        fftImage2 = fftImage2 * cp.sinc(selection_filter)
     elif mask_f_case == 'jinc':
         fftImage2 = fftImage2 * jinc(selection_filter)
 
     #Retrieve optical field.
-    E_field = np.fft.ifft2(np.fft.fftshift(fftImage2)) 
+    E_field = cp.fft.ifft2(cp.fft.fftshift(fftImage2)) 
     
     #Crop optical field to avoid edge effects.
     if cropping > 0:
@@ -676,22 +681,22 @@ def imgtofield_simple(img,
         E_field_cropped = E_field
     
     #Get phase image.
-    phase_img  = np.angle(E_field_cropped) 
+    phase_img  = cp.angle(E_field_cropped) 
     
     # Get the phase background from phase image.
     phase_background = correct_phase_4order(phase_img, G, polynomial)
     
     #Correct E_field with the phase_background
-    E_field_corr = E_field_cropped * np.exp(- 1j * phase_background)
+    E_field_corr = E_field_cropped * cp.exp(- 1j * phase_background)
 
     #Get phase image.
-    phase_img2 = np.angle(E_field_corr)
+    phase_img2 = cp.angle(E_field_corr)
     
     #Correct E_field again
-    E_field_corr2 = E_field_corr * np.exp(- 1j * np.median(phase_img2 + np.pi - 1))
+    E_field_corr2 = E_field_corr * cp.exp(- 1j * cp.median(phase_img2 + cp.pi - 1))
 
     #Get phase image.
-    phase_img3 = np.angle(E_field_corr2)
+    phase_img3 = cp.angle(E_field_corr2)
     
     #Unwrap the phase. Quite slow, but improves reconstruction.
     phase_img_unwarp = phaseunwrap(phase_img3, KX2_add_KY2)
@@ -703,7 +708,7 @@ def imgtofield_simple(img,
     phase_image_finished = phase_img_unwarp - phase_background2 
         
     #Final optical field.    
-    E_field_corr3 = np.abs(E_field_corr2)*np.exp(1j * phase_image_finished)
+    E_field_corr3 = cp.abs(E_field_corr2)*cp.exp(1j * phase_image_finished)
         
     return E_field_corr3
 
@@ -720,19 +725,19 @@ def phase_frequencefilter(field, mask, is_field = True, crop = 0):
         phase_img : phase of optical field.
     """
     if is_field:
-        freq = np.fft.fftshift(np.fft.fft2(field))
+        freq = cp.fft.fftshift(cp.fft.fft2(field))
     else:
         freq = field
         
     #construct low-pass mask
     freq_low = freq * mask
     
-    E_field = np.fft.ifft2(np.fft.fftshift(freq_low)) #Shift the zero-frequency component to the center of the spectrum. and compute inverse fft
+    E_field = cp.fft.ifft2(cp.fft.fftshift(freq_low)) #Shift the zero-frequency component to the center of the spectrum. and compute inverse fft
     
     if crop > 0:
-        phase_img = np.angle(E_field[crop:-crop, crop:-crop])
+        phase_img = cp.angle(E_field[crop:-crop, crop:-crop])
     else:
-        phase_img = np.angle(E_field)
+        phase_img = cp.angle(E_field)
     
     return phase_img
 
@@ -749,18 +754,18 @@ def correct_phase_manually(field, phase_img, margin_shift = 2.5, input_phase = T
         Corrected phase.
 
     """
-    shift_from_median = np.pi - margin_shift
+    shift_from_median = cp.pi - margin_shift
     
     #If phase inputed, use that
     if input_phase:
-        phase_shift = -np.median(phase_img) - shift_from_median
+        phase_shift = -cp.median(phase_img) - shift_from_median
         phase0 = phase_img+phase_shift
         phase1 = phase_img+phase_shift-4
     else:    
         field_test = field
-        phase_shift = -np.median(np.angle(field_test)) - shift_from_median
-        phase0 = np.angle(field_test * np.exp(1j * phase_shift))
-        phase1 = np.angle(field_test * np.exp(1j * (phase_shift - 4)))
+        phase_shift = -cp.median(cp.angle(field_test)) - shift_from_median
+        phase0 = cp.angle(field_test * cp.exp(1j * phase_shift))
+        phase1 = cp.angle(field_test * cp.exp(1j * (phase_shift - 4)))
     
     # Create mask where phase larger than 1.5
     filt_warp = ndimage.gaussian_filter(phase0>1.5, sigma = 0.25)
@@ -768,7 +773,7 @@ def correct_phase_manually(field, phase_img, margin_shift = 2.5, input_phase = T
     #Compute phase
     phase = phase0 * (filt_warp<1) + (phase1 + 4) * filt_warp + shift_from_median
     
-    phase = phase - np.median(phase) - 0.3
+    phase = phase - cp.median(phase) - 0.3
     
     return phase
 
@@ -792,47 +797,51 @@ def create_circular_mask(h, w, center=None, radius=None):
     if radius is None: # use the smallest distance between the center and image walls
         radius = min(center[0], center[1], w-center[0], h-center[1])
 
-    Y, X = np.ogrid[:h, :w]
-    dist_from_center = np.sqrt((X - center[0])**2 + (Y-center[1])**2)
+    Y, X = cp.ogrid[:h, :w]
+    dist_from_center = cp.sqrt((X - center[0])**2 + (Y-center[1])**2)
 
     mask = dist_from_center <= radius
     return mask
 
-
-def create_ellipse_mask(h, w, center = None, radius_h = None, radius_w = None, percent = 0.05):
+def create_ellipse_mask(h, w, center=None, radius_h=None, radius_w=None, percent=0.05):
     """
-    Creates a ellipsoid mask.
+    Creates an ellipsoid mask.
 
     Input:
         h : height
         w : width
-        center : Define center of image. If None -> middle is used
+        center : Define center of the image. If None, the middle is used.
         radius_h : Radius in height
-        radius_w : radius in width
-        percent : if radius_h or radius_w is not defined use this percentage factor instead.
+        radius_w : Radius in width
+        percent : If radius_h or radius_w is not defined, use this percentage factor instead.
     Output:
         Ellipsoid mask.
-
     """
-
-    import cv2 #Implementation is done in cv2
+    import cupy as cp
 
     if center is None:
-        center_w, center_h = int(w/2), int(h/2)
+        center_w, center_h = int(w / 2), int(h / 2)
     else:
         center_w, center_h = center[0], center[1]
 
-    if radius_h is None and radius_w is None: 
-    
+    if radius_h is None and radius_w is None:
         if percent is not None:
-            radius_w, radius_h =  int(percent * w), int(percent * h)
-        else:    
-            radius_w, radius_h =  int(0.25 * w/2), int(0.25 * h/2) #Ellipsoid of this size. To get some output
-    
-    img = np.zeros((h, w))
-    mask = cv2.ellipse(img, (center_w, center_h), (radius_w, radius_h), 0, 0, 360, 255, -1)
+            radius_w, radius_h = int(percent * w), int(percent * h)
+        else:
+            radius_w, radius_h = int(0.25 * w / 2), int(0.25 * h / 2)  # Ellipsoid of this size. To get some output
 
-    return np.where(mask > 0, 1, 0)
+    img = cp.zeros((h, w), dtype=cp.uint8)
+    y_indices, x_indices = cp.indices(img.shape[:2])
+
+    # Calculate the equation of the ellipse
+    ellipse_equation = (
+        ((x_indices - center_w) / radius_w) ** 2 +
+        ((y_indices - center_h) / radius_h) ** 2
+    )
+
+    # Set pixels within the ellipse to 1
+    mask = cp.where(ellipse_equation <= 1, 1, 0)
+    return mask
 
 def mask_out_pipeline(
     fftimage, 
@@ -851,25 +860,27 @@ def mask_out_pipeline(
     #Import libraries-Used for detecting the peaks
     from skimage.feature import peak_local_max
 
-    intensity = np.abs(fftimage)
+    intensity = cp.abs(fftimage)
 
     #Normalize intensity within 0 - 1
-    intensity = intensity / np.max(intensity)
+    intensity = intensity / cp.max(intensity)
 
     #Add a small delta
     intensity = intensity + 1e-9
 
     #Do gaussian blur
-    intensity = scipy.ndimage.gaussian_filter(intensity, sigma=sigma)
+    intensity = ndimage.gaussian_filter(intensity, sigma=sigma)
 
     #Normalize intensity within 0 - 1
-    intensity = intensity / np.max(intensity)
+    intensity = intensity / cp.max(intensity)
 
     #Find local maximas
+    intensity = intensity.get()
     local_maxi = peak_local_max(intensity, min_distance=min_distance)
+    local_maxi = cp.asarray(local_maxi)
 
     #Find distance from center
-    distance_from_center = np.sqrt((local_maxi[:,0] - fftimage.shape[0]/2)**2 + (local_maxi[:,1] - fftimage.shape[1]/2)**2)
+    distance_from_center = cp.sqrt((local_maxi[:,0] - fftimage.shape[0]/2)**2 + (local_maxi[:,1] - fftimage.shape[1]/2)**2)
 
     #Extract the local maximas that are far enough from center
     local_maxi = local_maxi[distance_from_center > min_distance_from_center]
@@ -878,7 +889,7 @@ def mask_out_pipeline(
     peaks = local_maxi[:max_peaks]
 
     #Mask out the peaks
-    mask = np.zeros_like(mask_original)
+    mask = cp.zeros_like(mask_original)
 
     for peak in peaks:
         
@@ -892,9 +903,9 @@ def mask_out_pipeline(
 
     mask[mask>0] = -1
 
-    new_mask = np.array(mask_original + mask, dtype = np.int8)
+    new_mask = cp.array(mask_original + mask, dtype = cp.int8)
 
-    new_mask = np.where(new_mask == -1, 0, new_mask)
+    new_mask = cp.where(new_mask == -1, 0, new_mask)
 
     return new_mask
 
@@ -908,7 +919,7 @@ def black_frame(img):
         boolean
     """
     
-    if np.sum(img==0) < (img.shape[0] * img.shape[1]):
+    if cp.sum(img==0) < (img.shape[0] * img.shape[1]):
         return False 
     else:
         return True 
@@ -922,13 +933,13 @@ def dct(y):
     
     """
     N = len(y)
-    y2 = np.empty(2*N, float)
+    y2 = cp.empty(2*N, float)
     y2[:N] = y[:]
     y2[N:] = y[::-1]
 
-    c = np.fft.rfft(y2)
-    phi = np.exp(-1j*np.pi*np.arange(N)/(2*N))
-    return np.real(phi*c[:N])    
+    c = cp.fft.rfft(y2)
+    phi = cp.exp(-1j*cp.pi*cp.arange(N)/(2*N))
+    return cp.real(phi*c[:N])    
 
 def dct2(y):
     """
@@ -939,8 +950,8 @@ def dct2(y):
 
     """
     M, N = y.shape
-    a = np.empty([M,N], float)
-    b = np.empty([M,N], float)
+    a = cp.empty([M,N], float)
+    b = cp.empty([M,N], float)
 
     for i in range(M):
         a[i,:] = dct(y[i,:])
@@ -958,12 +969,12 @@ def idct(a):
 
     """
     N = len(a)
-    c = np.empty(N+1, complex)
+    c = cp.empty(N+1, complex)
 
-    phi = np.exp(1j*np.pi*np.arange(N)/(2*N))
+    phi = cp.exp(1j*cp.pi*cp.arange(N)/(2*N))
     c[:N] = phi*a
     c[N] = 0.0
-    return np.fft.irfft(c)[:N]    
+    return cp.fft.irfft(c)[:N]    
 
 def idct2(b):
     """
@@ -974,8 +985,8 @@ def idct2(b):
 
     """
     M, N = b.shape
-    a = np.empty([M,N], float)
-    y = np.empty([M,N], float)
+    a = cp.empty([M,N], float)
+    y = cp.empty([M,N], float)
 
     for i in range(M):
         a[i,:] = idct(b[i,:])
@@ -993,7 +1004,7 @@ def scale(x, out_range=(-1, 1)):
     Output:
         Transformed Image 
     """
-    domain = np.min(x), np.max(x)
+    domain = cp.min(x), cp.max(x)
     y = (x - (domain[1] + domain[0]) / 2) / (domain[1] - domain[0])
     return y * (out_range[1] - out_range[0]) + (out_range[1] + out_range[0]) / 2
 
