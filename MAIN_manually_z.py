@@ -28,7 +28,7 @@ def init(C):
 #Define settings in config.py and then run MAIN.py
 
 #Where the movies are located.
-ROOT_MOVIES_FOLDERS = ["F:/OleicAcid/dish2_compartment1/", "F:/OleicAcid/dish2_compartment2/", "F:/OleicAcid/dish2_compartment3/", "F:/OleicAcid/dish2_compartment4/"]
+ROOT_MOVIES_FOLDERS = ["F:/OleicAcid/dish1_compartment1/", "F:/OleicAcid/dish1_compartment2/", "F:/OleicAcid/dish1_compartment3/", "F:/OleicAcid/dish1_compartment4/"]
 
 #Get all folders in ROOT_MOVIES_FOLDERS
 FOLDERS_MOVIES = []
@@ -43,7 +43,7 @@ ROOT_MOVIES_FOLDER = ROOT_MOVIES_FOLDERS_N
 
 
 #Where to save the results.
-ROOT_SAVE_FOLDER = "F:/OleicAcid/Results_new/dish2/"
+ROOT_SAVE_FOLDER = "F:/OleicAcid/Results_new/dish1/"
 
 if not os.path.exists(ROOT_SAVE_FOLDER):
     os.mkdir(ROOT_SAVE_FOLDER)
