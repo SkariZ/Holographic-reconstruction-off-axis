@@ -10,7 +10,7 @@ Change the settings in each class after own preferences.
 
 """
 
-
+ENDSWITH = 'holo.avi'
 
 class main_settings:
     """
@@ -28,7 +28,7 @@ class main_settings:
 
         #The filename that ends with holography. The file we want
         try:
-            self.filename_holo = [f for f in glob.glob(self.filename_folder + "/*.avi") if f.endswith('holo.avi')][0]
+            self.filename_holo = [f for f in glob.glob(self.filename_folder + "/*.avi") if f.endswith(ENDSWITH)][0]
         except:
             self.filename_holo = False
 
@@ -194,10 +194,10 @@ class reconstruction_settings(video_settings, index_settings):
     first_frame_precalc = index_settings.start_frame
 
     #Do a lowpassfit of background. This is necessary in Twilight off-axis 
-    lowpass_fit : bool = False
+    lowpass_fit : bool = True
 
     #For lowpass filtering when doing background estimation and subraction. First one is the fourier selection filter, the other are set costumized.
-    radius_lowpass : list[int] = field(default_factory=lambda: [225, 25, 25, 25]) #175, 5, 5, 5
+    radius_lowpass : list[int] = field(default_factory=lambda: [300, 25, 25, 25]) #175, 5, 5, 5
     
     #Shift fourier peak slightly. Manually, if the fourier center is slightly off..
     correct_fourier_peak : list[int] = field(default_factory=lambda: [0, 0]) #Positive row is upward shift, positive "col" is leftward shift and vice versa
@@ -206,7 +206,7 @@ class reconstruction_settings(video_settings, index_settings):
     add_phase_corrections : int = 5
 
     #Do phase background fit as long as the phase background is not changing more than this value.
-    correct_phase_background_tol : float = 1e-6
+    correct_phase_background_tol : float = 0
 
     #Do phase unwrapping. Do not use.
     unwrap : bool = False
@@ -244,6 +244,6 @@ class save_settings(reconstruction_settings, video_settings):
 
     #Radius of the pupil. Only used if fft_save = True
     if reconstruction_settings.lowpass_fit:
-        pupil_radius : int = 225 # OBS hardcoded for now. #reconstruction_settings.radius_lowpass[0]
+        pupil_radius : int = 300 # OBS hardcoded for now. #reconstruction_settings.radius_lowpass[0]
     else:
         pupil_radius : int = int(max([video_settings.height - reconstruction_settings.cropping*2, video_settings.width - reconstruction_settings.cropping*2]) / 6)

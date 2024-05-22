@@ -24,29 +24,38 @@ def init(C):
 #Define settings in config.py and then run MAIN.py
 
 #Where the movies are located.
-ROOT_MOVIES_FOLDER = "D:/Endosomes_Feb9_24/"
+ROOT_MOVIES_FOLDERS = ["F:/OleicAcid/dish2_compartment1/", "F:/OleicAcid/dish2_compartment2/", "F:/OleicAcid/dish2_compartment3/", "F:/OleicAcid/dish2_compartment4/"]
 
-#Get all folders in ROOT_MOVIES_FOLDER
-FOLDERS_MOVIES = [f for f in os.listdir(ROOT_MOVIES_FOLDER) if os.path.isdir(os.path.join(ROOT_MOVIES_FOLDER, f))]
+#Get all folders in ROOT_MOVIES_FOLDERS
+FOLDERS_MOVIES = []
+for ROOT_MOVIES_FOLDER in ROOT_MOVIES_FOLDERS:
+    FOLDERS_MOVIE = [f for f in os.listdir(ROOT_MOVIES_FOLDER) if os.path.isdir(os.path.join(ROOT_MOVIES_FOLDER, f))]
+    FOLDERS_MOVIES += FOLDERS_MOVIE
 
-#Only movies with 'bodipy' in the name. or 'Bodipy'
-#FOLDERS_MOVIES = [f for f in FOLDERS_MOVIES if 'bodipy' in f.lower()]
+ROOT_MOVIES_FOLDERS_N = []
+for ROOT_MOVIES_FOLDER in ROOT_MOVIES_FOLDERS:
+    ROOT_MOVIES_FOLDERS_N += [ROOT_MOVIES_FOLDER]*len(FOLDERS_MOVIE)
+ROOT_MOVIES_FOLDER = ROOT_MOVIES_FOLDERS_N
+
 
 #Where to save the results.
-ROOT_SAVE_FOLDER = "D:/Endosomes_Feb9_24/Results"
+ROOT_SAVE_FOLDER = "F:/OleicAcid/Results_new/dish2/"
+
+if not os.path.exists(ROOT_SAVE_FOLDER):
+    os.mkdir(ROOT_SAVE_FOLDER)
 
 if __name__ == "__main__":
 
     #Loop over all folders.
     START = time.time()
-    for folder in FOLDERS_MOVIES:
+    for k, folder in enumerate(FOLDERS_MOVIES):
         
         #If folder already exists, skip.
         if os.path.exists(f'{ROOT_SAVE_FOLDER}/{folder}'):
             continue
 
         C = CONFIG.main_settings(
-            filename_folder=f'{ROOT_MOVIES_FOLDER}/{folder}',
+            filename_folder=f'{ROOT_MOVIES_FOLDER[k]}/{folder}',
             project_name=folder,
             root_folder=ROOT_SAVE_FOLDER)
         
