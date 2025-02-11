@@ -149,10 +149,12 @@ def video_to_field(
     
     if CONFIG.video_settings.edges:
         tmp_img = u.clip_image(tmp_img)
-        height, width = tmp_img.shape[:2]
+
+    #Get the height and width of the image    
+    height, width = tmp_img.shape[:2]
         
     if CONFIG.video_settings.height<height and CONFIG.video_settings.height != 1 or CONFIG.video_settings.width>width and CONFIG.video_settings.width !=1:
-        tmp_img = u.cropping_image(tmp_img, CONFIG.video_settings.height, CONFIG.video_settings.width, CONFIG.video_settings.corner)
+        tmp_img = u.cropping_image(image=tmp_img, h=CONFIG.video_settings.height, w=CONFIG.video_settings.width, corner=CONFIG.video_settings.corner)
     
     # Retrieve optical field and phase background.
     E_field = imgtofield(tmp_img, 
@@ -182,8 +184,10 @@ def main(filename_holo,
     height = int(video.get(cv2.CAP_PROP_FRAME_HEIGHT)) #height
     width = int(video.get(cv2.CAP_PROP_FRAME_WIDTH)) #width
     fps = int(video.get(cv2.CAP_PROP_FPS)) #fps
-    first_img = u.first_frame(video, height, width, CONFIG.video_settings.height, CONFIG.video_settings.width, index=CONFIG.reconstruction_settings.first_frame_precalc)
+    first_img = u.first_frame(video, height, width, CONFIG.video_settings.height, CONFIG.video_settings.width, corner=CONFIG.video_settings.corner, index=CONFIG.reconstruction_settings.first_frame_precalc)
     first_img = cp.array(first_img)
+    #Ave the first image
+    u.save_frame(first_img, f'{root_folder}/{project_name}/plots', name = 'first_frame_holo')
     print("Original video size: (frames, height, width, fps):", (n_frames, height, width, fps))
     
     #Precalculations (Speed ups computations a lot).

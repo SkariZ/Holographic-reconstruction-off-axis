@@ -10,7 +10,8 @@ Change the settings in each class after own preferences.
 
 """
 
-ENDSWITH = 'holo.avi'
+#ENDSWITH = 'holo.avi'
+ENDSWITH = ''
 
 class main_settings:
     """
@@ -34,13 +35,17 @@ class main_settings:
 
         #Paths that will be constructed in rooft_folder/project_name/
         self.standard_paths = ['field', 'plots']
-        self.standard_paths_plot = ['frames','prop', 'sub']
+        self.standard_paths_plot = ['frames', 'prop', 'sub']
 
     #Have them as usual functions as of now. Class will always be initialized the init values.
     def check_if_file_exists(self):
         """
         Check if the file exists.
         """
+        return True
+        # If it is not a string make it a string.
+        if not isinstance(self.filename_holo, str):
+            self.filename_holo = str(self.filename_holo)
         if not os.path.isfile(self.filename_holo):
             return False
         else:
@@ -86,19 +91,19 @@ class video_settings:
     """
     
     #size height
-    height : int = 1400
+    height : int = 1200
 
     #size width
-    width : int = 1800
+    width : int = 1600
     
     #Which corner to crop in image [[],[]], upper left 1, upper right 2, lower left 3, lower right 4.
-    corner : int = 2
+    corner : int = 3
 
     # If you now the period of which the camera shifts, add this here. If 0 it will be estimated. (Does only matter if you will do background subtraction later, and only for index method old and pre-, prepost)
     vid_shift : float = 5
 
     #Edges- Some videos have black edges, some do not. 0 = no black edges, 1 = black edges. (Do not change, keep at 1)
-    edges : bool = True
+    edges : bool = 0
 
     #Check for good and bad frames before choosing which indeces to take out. Some videos disrupted // gray frames for example. Recommendet to keep off.
     check_good : bool = False
@@ -110,7 +115,7 @@ class index_settings:
     """
 
     #Cap the maximum number of frames.
-    max_frames : int = 400
+    max_frames : int = 40
 
     #Which frame to start processing from
     start_frame : int = 0
@@ -131,10 +136,10 @@ class plot_settings:
     """
 
     #Plot all frames
-    plot_all : bool = True
+    plot_all : bool = False
 
     #Plot z
-    plot_z : bool = True
+    plot_z : bool = False
 
     #Plot subtraction plots
     plot_sub : bool = False
@@ -152,7 +157,7 @@ class plot_settings:
     movie : bool = True
 
     #Movie fps
-    movie_fps : int = 20
+    movie_fps : int = 30
 
     #Delete images after movie is made
     delete_images : bool = True
@@ -197,13 +202,13 @@ class reconstruction_settings(video_settings, index_settings):
     lowpass_fit : bool = True
 
     #For lowpass filtering when doing background estimation and subraction. First one is the fourier selection filter, the other are set costumized.
-    radius_lowpass : list[int] = field(default_factory=lambda: [300, 25, 25, 25]) #175, 5, 5, 5
+    radius_lowpass : list[int] = field(default_factory=lambda: [250, 15, 10, 10]) #175, 5, 5, 5
     
     #Shift fourier peak slightly. Manually, if the fourier center is slightly off..
     correct_fourier_peak : list[int] = field(default_factory=lambda: [0, 0]) #Positive row is upward shift, positive "col" is leftward shift and vice versa
 
     #Additionional phase corrections. A loop.
-    add_phase_corrections : int = 5
+    add_phase_corrections : int = 3
 
     #Do phase background fit as long as the phase background is not changing more than this value.
     correct_phase_background_tol : float = 0
@@ -212,7 +217,7 @@ class reconstruction_settings(video_settings, index_settings):
     unwrap : bool = False
 
     #Fit a phase background with first frame.
-    first_phase_background : bool = False
+    first_phase_background : bool = True
 
     #Cropping to remove weird edges etc.
     cropping : int = 0
@@ -224,16 +229,16 @@ class reconstruction_settings(video_settings, index_settings):
     mask_f : str = ''
 
     #Mask_out - Mask out regions in the fftimage that can be a source of noise.
-    mask_out : bool = True
+    mask_out : bool = False
 
     #Sign correction. If the sign is wrong, then the field will be flipped. Force positive real part.
     sign_correction : bool = False
 
     #Conjugate check
-    conjugate_check : bool = True
+    conjugate_check : bool = False
 
     #Do a background segmentation, and normalize such that the phase is 0 in the background.
-    background_segmentation : bool = True
+    background_segmentation : bool = False
 
 
 @dataclass
@@ -244,6 +249,6 @@ class save_settings(reconstruction_settings, video_settings):
 
     #Radius of the pupil. Only used if fft_save = True
     if reconstruction_settings.lowpass_fit:
-        pupil_radius : int = 300 # OBS hardcoded for now. #reconstruction_settings.radius_lowpass[0]
+        pupil_radius : int = 250 # OBS hardcoded for now. #reconstruction_settings.radius_lowpass[0]
     else:
         pupil_radius : int = int(max([video_settings.height - reconstruction_settings.cropping*2, video_settings.width - reconstruction_settings.cropping*2]) / 6)

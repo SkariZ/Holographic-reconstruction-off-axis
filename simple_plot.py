@@ -64,7 +64,7 @@ def main(
         c_str, name = 'phase_image'
         )
 
-    im = image_utils.first_frame(video, height, width, CONFIG.video_settings.height, CONFIG.video_settings.width, index=CONFIG.reconstruction_settings.first_frame_precalc)
+    im = image_utils.first_frame(video, height, width, CONFIG.video_settings.height, CONFIG.video_settings.width, corner=CONFIG.video_settings.corner, index=CONFIG.reconstruction_settings.first_frame_precalc)
     im = cp.asarray(im)
     im = phase_utils.get_shifted_fft(im, filter_radius = [], correct_fourier_peak=CONFIG.reconstruction_settings().correct_fourier_peak)
 

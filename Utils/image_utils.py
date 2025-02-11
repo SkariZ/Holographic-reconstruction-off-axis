@@ -42,7 +42,7 @@ def save_frame(frame, folder, name, cmap = 'gray', annotate = 'False', annotaten
         plt.close(fig)
 
 
-def cropping_image(image, h, w, corner = 4):
+def cropping_image(image, h, w, corner):
     """
     Crops the image
     """
@@ -51,20 +51,23 @@ def cropping_image(image, h, w, corner = 4):
     if hi<=h or wi<=w:
         raise Exception("Cropping size larger than actual image size.")
     
-    if wi == hi:#If we have a square image we can resize without loss of quality
-        image = cv2.resize(image, (w, h), interpolation = cv2.INTER_AREA)
-    else: #Crop out the "corner"
-        if corner == 1:
-            image = image[:h, :w] #Top left
-        elif corner == 2:
-            image = image[:h, -w:] #Top right
-        elif corner == 3:
-            image = image[-h:, :w] #Bottom left
-        elif corner == 4:
-            image = image[-h:, -w:] #Bottom right
+    #if wi == hi:#If we have a square image we can resize without loss of quality
+    #    image = cv2.resize(image, (w, h), interpolation = cv2.INTER_AREA)
+   #Crop out the "corner"
+    if corner == 1:
+        image = image[:h, :w] #Top left
+    elif corner == 2:
+        image = image[:h, -w:] #Top right
+    elif corner == 3:
+        image = image[-h:, :w] #Bottom left
+    elif corner == 4:
+        image = image[-h:, -w:] #Bottom right
+    #elif wi == hi:
+    #    image = cv2.resize(image, (w, h), interpolation = cv2.INTER_AREA)
+
     return image
     
-def first_frame(video, height, width, H, W, corner=1, edges = True, index=1):
+def first_frame(video, height, width, H, W, corner, edges=False, index=1):
     """
     Returns the first frame of the video. Used for precalculations.
     """
@@ -77,7 +80,7 @@ def first_frame(video, height, width, H, W, corner=1, edges = True, index=1):
         height, width = image.shape[:2]
         
     if H<height and H != 1 or W>width and W !=1:
-        image = cropping_image(image, H, W, corner)
+        image = cropping_image(image, H, W, corner=corner)
     else:
         image = frame[:,:,0]
     return image

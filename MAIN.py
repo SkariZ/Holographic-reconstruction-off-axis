@@ -16,6 +16,9 @@ import simple_plot
 
 def init(C):
     valid = C.check_if_file_exists()
+    if not valid:
+        print(f"File {C.filename_holo} does not exist.")
+        return False
     C.create_result_folder()
     C.print_main_settings()
     C.save_config_to_results()
@@ -24,22 +27,33 @@ def init(C):
 #Define settings in config.py and then run MAIN.py
 
 #Where the movies are located.
-ROOT_MOVIES_FOLDERS = ["F:/OleicAcid/dish2_compartment1/", "F:/OleicAcid/dish2_compartment2/", "F:/OleicAcid/dish2_compartment3/", "F:/OleicAcid/dish2_compartment4/"]
+ROOT_MOVIES_FOLDERS = [
+    "F:/YeastFlowWithBSA/Flowing_wBSAEvery1_1", 
+    "F:/YeastFlowWithBSA/Flowing_wBSAEvery1_2", 
+    "F:/YeastFlowWithBSA/Flowing_wBSAEvery1_3", 
+    "F:/YeastFlowWithBSA/Flowing_wBSAEvery1_4", 
+    "F:/YeastFlowWithBSA/Flowing_wBSAEvery1_5"
+    ]
+
+ROOT_MOVIES_FOLDERS = os.listdir('D:/Hepatocytes')
+
+#Join with the root folder.
+ROOT_MOVIES_FOLDERS = [f'D:/Hepatocytes/{f}' for f in ROOT_MOVIES_FOLDERS]
 
 #Get all folders in ROOT_MOVIES_FOLDERS
 FOLDERS_MOVIES = []
-for ROOT_MOVIES_FOLDER in ROOT_MOVIES_FOLDERS:
-    FOLDERS_MOVIE = [f for f in os.listdir(ROOT_MOVIES_FOLDER) if os.path.isdir(os.path.join(ROOT_MOVIES_FOLDER, f))]
-    FOLDERS_MOVIES += FOLDERS_MOVIE
-
 ROOT_MOVIES_FOLDERS_N = []
 for ROOT_MOVIES_FOLDER in ROOT_MOVIES_FOLDERS:
-    ROOT_MOVIES_FOLDERS_N += [ROOT_MOVIES_FOLDER]*len(FOLDERS_MOVIE)
-ROOT_MOVIES_FOLDER = ROOT_MOVIES_FOLDERS_N
+    FOLDERS_MOVIE = [f for f in os.listdir(ROOT_MOVIES_FOLDER)]
+    FOLDERS_MOVIES += FOLDERS_MOVIE
 
+    curr_len = len(FOLDERS_MOVIE)
+    ROOT_MOVIES_FOLDERS_N += [ROOT_MOVIES_FOLDER]*curr_len
+
+ROOT_MOVIES_FOLDERS = ROOT_MOVIES_FOLDERS_N
 
 #Where to save the results.
-ROOT_SAVE_FOLDER = "F:/OleicAcid/Results_new/dish2/"
+ROOT_SAVE_FOLDER = "D:/Hepatocytes/Results/"
 
 if not os.path.exists(ROOT_SAVE_FOLDER):
     os.mkdir(ROOT_SAVE_FOLDER)
@@ -55,10 +69,10 @@ if __name__ == "__main__":
             continue
 
         C = CONFIG.main_settings(
-            filename_folder=f'{ROOT_MOVIES_FOLDER[k]}/{folder}',
+            filename_folder=f'{ROOT_MOVIES_FOLDERS[k]}/{folder}',
             project_name=folder,
             root_folder=ROOT_SAVE_FOLDER)
-        
+        print(f'{ROOT_MOVIES_FOLDERS[k]}/{folder}')
         #Initialize the settings.
         valid = init(C)
 

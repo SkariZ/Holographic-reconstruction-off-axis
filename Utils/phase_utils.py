@@ -490,6 +490,18 @@ def pre_calculations(
     idx_max = (idx_max[0]+correct_fourier_peak[0], idx_max[1]+correct_fourier_peak[1])
     idx_max = (idx_max[0], idx_max[1])
 
+    #Around idx_max we have the peak in the fourier space. Check for the row sum around the peak, and the column sum.
+    search_range = 10
+    row_sum = cp.sum(cp.abs(fftImage[idx_max[0]-search_range:idx_max[0]+search_range, idx_max[1]-search_range*4:idx_max[1]+search_range*4]), axis = 1)
+    col_sum = cp.sum(cp.abs(fftImage[idx_max[0]-search_range*4:idx_max[0]+search_range*4, idx_max[1]-search_range:idx_max[1]+search_range]), axis = 0)
+
+    #Find the peak in the row and column sum.
+    idx_max_row = cp.argmax(row_sum) + idx_max[0]-search_range
+    idx_max_col = cp.argmax(col_sum) + idx_max[1]-search_range
+
+    #The peak position in the fourier space.
+    idx_max = (idx_max_row, idx_max_col)
+
     x_pos = X[idx_max] #In X
     y_pos = Y[idx_max] #In Y
     dist_peak = cp.sqrt(x_pos**2 + y_pos**2)
@@ -589,15 +601,19 @@ def get_shifted_fft(frame, filter_radius=200, correct_fourier_peak = [0, 0]):
     idx_max_imag = cp.unravel_index(cp.argmax(imag_c, axis=None), fftImage.shape)
     
     idx_max = (int((idx_max_real[0] + idx_max_imag[0])/2), int((idx_max_real[1] + idx_max_imag[1])/2))   
-    
     idx_max = (idx_max[0]+correct_fourier_peak[0], idx_max[1]+correct_fourier_peak[1])
-    #idx_max = (idx_max[0]+5, idx_max[1]-25)
-    #gauss_fft = scipy.ndimage.gaussian_filter(cp.log(cp.abs(fftImage)), sigma = 5)
-    #idx_max = cp.unravel_index(cp.argmax(gauss_fft, axis=None), fftImage.shape)
 
-    #x_pos = X[idx_max] #In X
-    #y_pos = Y[idx_max] #In Y
-    #dist_peak = cp.sqrt(x_pos**2 + y_pos**2)
+    #Around idx_max we have the peak in the fourier space. Check for the row sum around the peak, and the column sum.
+    search_range = 10
+    row_sum = cp.sum(cp.abs(fftImage[idx_max[0]-search_range:idx_max[0]+search_range, idx_max[1]-search_range*4:idx_max[1]+search_range*4]), axis = 1)
+    col_sum = cp.sum(cp.abs(fftImage[idx_max[0]-search_range*4:idx_max[0]+search_range*4, idx_max[1]-search_range:idx_max[1]+search_range]), axis = 0)
+
+    #Find the peak in the row and column sum.
+    idx_max_row = cp.argmax(row_sum) + idx_max[0]-search_range
+    idx_max_col = cp.argmax(col_sum) + idx_max[1]-search_range
+
+    #The peak position in the fourier space.
+    idx_max = (idx_max_row, idx_max_col)
 
     kx_pos = KX[idx_max]
     ky_pos = KY[idx_max]
